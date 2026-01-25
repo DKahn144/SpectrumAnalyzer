@@ -38,15 +38,17 @@
             lblFileInfo = new ToolStripLabel();
             toolStripSeparator1 = new ToolStripSeparator();
             lblTotalTime = new ToolStripLabel();
+            panel1 = new Panel();
             toolStrip1.SuspendLayout();
+            panel1.SuspendLayout();
             SuspendLayout();
             // 
             // specrumAnalysisControl1
             // 
             specrumAnalysisControl1.Dock = DockStyle.Fill;
-            specrumAnalysisControl1.Location = new Point(0, 0);
+            specrumAnalysisControl1.Location = new Point(0, 25);
             specrumAnalysisControl1.Name = "specrumAnalysisControl1";
-            specrumAnalysisControl1.Size = new Size(1156, 560);
+            specrumAnalysisControl1.Size = new Size(1156, 535);
             specrumAnalysisControl1.TabIndex = 2;
             // 
             // toolStrip1
@@ -124,19 +126,29 @@
             lblTotalTime.Text = "(total time)";
             lblTotalTime.ToolTipText = "total time";
             // 
+            // panel1
+            // 
+            panel1.Controls.Add(toolStrip1);
+            panel1.Dock = DockStyle.Top;
+            panel1.Location = new Point(0, 0);
+            panel1.Name = "panel1";
+            panel1.Size = new Size(1156, 25);
+            panel1.TabIndex = 4;
+            // 
             // SpectrumViewer
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1156, 560);
-            Controls.Add(toolStrip1);
             Controls.Add(specrumAnalysisControl1);
+            Controls.Add(panel1);
             Name = "SpectrumViewer";
             Text = "Form1";
             toolStrip1.ResumeLayout(false);
             toolStrip1.PerformLayout();
+            panel1.ResumeLayout(false);
+            panel1.PerformLayout();
             ResumeLayout(false);
-            PerformLayout();
         }
 
         #endregion
@@ -150,5 +162,6 @@
         private ToolStripTextBox tbxCurrentFile;
         private ToolStripSeparator toolStripSeparator1;
         private ToolStripLabel lblTotalTime;
+        private Panel panel1;
     }
 }
