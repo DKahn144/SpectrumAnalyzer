@@ -38,13 +38,13 @@ namespace SpectrumAnalyzer
             // 
             // spectrumPlots
             // 
-            spectrumPlots.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             spectrumPlots.BackColor = SystemColors.ControlDark;
             spectrumPlots.DisplayScale = 1F;
-            spectrumPlots.Location = new Point(102, 0);
+            spectrumPlots.Dock = DockStyle.Fill;
+            spectrumPlots.Location = new Point(0, 0);
             spectrumPlots.Margin = new Padding(2);
             spectrumPlots.Name = "spectrumPlots";
-            spectrumPlots.Size = new Size(904, 591);
+            spectrumPlots.Size = new Size(986, 569);
             spectrumPlots.TabIndex = 0;
             // 
             // panel1
@@ -53,7 +53,7 @@ namespace SpectrumAnalyzer
             panel1.Dock = DockStyle.Left;
             panel1.Location = new Point(0, 0);
             panel1.Name = "panel1";
-            panel1.Size = new Size(97, 591);
+            panel1.Size = new Size(97, 569);
             panel1.TabIndex = 1;
             // 
             // panel2
@@ -73,7 +73,7 @@ namespace SpectrumAnalyzer
             Controls.Add(panel1);
             Controls.Add(spectrumPlots);
             Name = "SpecrumAnalysisControl";
-            Size = new Size(1006, 591);
+            Size = new Size(986, 569);
             panel1.ResumeLayout(false);
             ResumeLayout(false);
         }
