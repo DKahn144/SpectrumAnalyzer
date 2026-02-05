@@ -12,4 +12,5 @@ Here is an image of the UI layout:
 
 ![SpectrumAnalyzer UI Layout](SpectrumViewer.png)
 
-Thanks to Scott Harden for his fantastic open source ScottPlot Library and FftSharp Library!
+Thanks to Scott Harden for his fantastic open source ScottPlot Library and FftSharp Library!  [Scottplot.net](https://scottplot.net/)
+Thanks to Mark Heath for his open source NAudio project.   [github/NAudio](https://github.com/naudio/NAudio)
