@@ -4,7 +4,8 @@ It provides a visual representation of the frequency spectrum over time, allowin
 
 Next steps:
 1. Add sound output for the selected file.
-2. Add ability to select a rectangular area on the heatmap and drill into it further, loading the data into a new instance of the form.
+2. Fix axis labels to represent frequenct and time.
+3. Add ability to select a rectangular area on the heatmap and drill into it further, loading the data into a new instance of the form.
 
 Here is an image of the UI layout:
 
