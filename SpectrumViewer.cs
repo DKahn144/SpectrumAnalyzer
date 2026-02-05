@@ -29,22 +29,34 @@ namespace SpectrumAnalyzer
             {
                 try
                 {
+                    var reader = new AudioFileReader(openFileDialog.FileName);
+                    lblFileInfo.Text = reader.WaveFormat.ToString();
+                    lblTotalTime.Text = reader.TotalTime.ToString();
                     selectedFileName = openFileDialog.FileName;
                     tbxCurrentFile.Text = $"{Path.GetFileName(selectedFileName)}";
-                    fileReader = new AudioFileReader(selectedFileName);
-                    lblFileInfo.Text = fileReader.WaveFormat.ToString();
-                    lblTotalTime.Text = fileReader.TotalTime.ToString();
+                    fileReader = reader;
+                    specrumAnalysisControl1.SetAudioFileSource(fileReader);
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show(String.Format("{0}", ex.Message), "Error Loading File");
                     return;
                 }
-                specrumAnalysisControl1.SampleProvider = fileReader;
             }
         }
 
         private AudioFileReader fileReader;
+
+        private void btnPlay_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void specrumAnalysisControl1_Load(object sender, EventArgs e)
+        {
+
+        }
+
         public AudioFileReader FileReader => fileReader;
     }
 }
