@@ -9,3 +9,5 @@ Next steps:
 Here is an image of the UI layout:
 
 ![SpectrumAnalyzer UI Layout](SpectrumViewer.png)
+
+Thanks to Scott Harden for his fantastic open source ScottPlot Library and FftSharp Library!
