@@ -1,4 +1,5 @@
-﻿namespace SpectrumAnalyzer
+﻿
+namespace SpectrumAnalyzer
 {
     partial class SpectrumViewer
     {
@@ -28,6 +29,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SpectrumViewer));
             PaneltoolStrip = new Panel();
             toolStrip1 = new ToolStrip();
@@ -39,8 +41,10 @@
             lblFileInfo = new ToolStripLabel();
             toolStripSeparator1 = new ToolStripSeparator();
             lblTotalTime = new ToolStripLabel();
+            toolStripLabelCurrentTime = new ToolStripLabel();
             panel1 = new Panel();
-            specrumAnalysisControl1 = new SpecrumAnalysisControl();
+            spectrumAnalysisControl1 = new SpectrumAnalysisControl();
+            timer1 = new System.Windows.Forms.Timer(components);
             PaneltoolStrip.SuspendLayout();
             toolStrip1.SuspendLayout();
             panel1.SuspendLayout();
@@ -59,10 +63,10 @@
             // toolStrip1
             // 
             toolStrip1.Dock = DockStyle.None;
-            toolStrip1.Items.AddRange(new ToolStripItem[] { btnOpenFile, btnPlay, btnPause, btnStop, tbxCurrentFile, lblFileInfo, toolStripSeparator1, lblTotalTime });
-            toolStrip1.Location = new Point(6, 0);
+            toolStrip1.Items.AddRange(new ToolStripItem[] { btnOpenFile, btnPlay, btnPause, btnStop, tbxCurrentFile, lblFileInfo, toolStripSeparator1, lblTotalTime, toolStripLabelCurrentTime });
+            toolStrip1.Location = new Point(8, 1);
             toolStrip1.Name = "toolStrip1";
-            toolStrip1.Size = new Size(375, 25);
+            toolStrip1.Size = new Size(505, 25);
             toolStrip1.TabIndex = 7;
             toolStrip1.Text = "toolStrip1";
             // 
@@ -96,6 +100,7 @@
             btnPause.Size = new Size(23, 22);
             btnPause.Text = "toolStripButton3";
             btnPause.ToolTipText = "btnPause";
+            btnPause.Click += btnPause_Click;
             // 
             // btnStop
             // 
@@ -106,11 +111,12 @@
             btnStop.Size = new Size(23, 22);
             btnStop.Text = "btnStop";
             btnStop.ToolTipText = "stop playing";
+            btnStop.Click += btnStop_Click;
             // 
             // tbxCurrentFile
             // 
             tbxCurrentFile.Name = "tbxCurrentFile";
-            tbxCurrentFile.Size = new Size(100, 25);
+            tbxCurrentFile.Size = new Size(150, 25);
             tbxCurrentFile.Text = "(Current File)";
             tbxCurrentFile.ToolTipText = "selected file";
             // 
@@ -133,22 +139,33 @@
             lblTotalTime.Text = "(total time)";
             lblTotalTime.ToolTipText = "total time";
             // 
+            // toolStripLabelCurrentTime
+            // 
+            toolStripLabelCurrentTime.Name = "toolStripLabelCurrentTime";
+            toolStripLabelCurrentTime.Size = new Size(80, 22);
+            toolStripLabelCurrentTime.Text = "(current time)";
+            // 
             // panel1
             // 
-            panel1.Controls.Add(specrumAnalysisControl1);
+            panel1.Controls.Add(spectrumAnalysisControl1);
             panel1.Dock = DockStyle.Fill;
             panel1.Location = new Point(0, 27);
             panel1.Name = "panel1";
             panel1.Size = new Size(1156, 561);
             panel1.TabIndex = 8;
             // 
-            // specrumAnalysisControl1
+            // spectrumAnalysisControl1
             // 
-            specrumAnalysisControl1.Dock = DockStyle.Fill;
-            specrumAnalysisControl1.Location = new Point(0, 0);
-            specrumAnalysisControl1.Name = "specrumAnalysisControl1";
-            specrumAnalysisControl1.Size = new Size(1156, 561);
-            specrumAnalysisControl1.TabIndex = 3;
+            spectrumAnalysisControl1.Dock = DockStyle.Fill;
+            spectrumAnalysisControl1.Location = new Point(0, 0);
+            spectrumAnalysisControl1.Name = "spectrumAnalysisControl1";
+            spectrumAnalysisControl1.Size = new Size(1156, 561);
+            spectrumAnalysisControl1.TabIndex = 3;
+            // 
+            // timer1
+            // 
+            timer1.Tick += timer1_Tick;
+            timer1.Interval = 100;
             // 
             // SpectrumViewer
             // 
@@ -181,6 +198,8 @@
         private ToolStripSeparator toolStripSeparator1;
         private ToolStripLabel lblTotalTime;
         private Panel panel1;
-        private SpecrumAnalysisControl specrumAnalysisControl1;
+        private SpectrumAnalysisControl spectrumAnalysisControl1;
+        private ToolStripLabel toolStripLabelCurrentTime;
+        private System.Windows.Forms.Timer timer1;
     }
 }

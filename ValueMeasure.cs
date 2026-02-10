@@ -22,7 +22,7 @@ namespace SpectrumAnalyzer
         public void AddValue(int position, float value)
         {
             while (Values.Count <= position) Values.Add(0);
-            Values[position] = value;
+            Values[position] = Math.Abs(value);
         }
 
         public void AddArray(float[] values, int startPos = 0, float divideBy = 1F)

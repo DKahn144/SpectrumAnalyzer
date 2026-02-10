@@ -2,7 +2,7 @@
 
 namespace SpectrumAnalyzer
 {
-    partial class SpecrumAnalysisControl
+    partial class SpectrumAnalysisControl
     {
         /// <summary> 
         /// Required designer variable.

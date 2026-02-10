@@ -14,9 +14,9 @@ using System.Windows.Forms;
 
 namespace SpectrumAnalyzer
 {
-    public partial class SpecrumAnalysisControl : UserControl
+    public partial class SpectrumAnalysisControl : UserControl
     {
-        public SpecrumAnalysisControl()
+        public SpectrumAnalysisControl()
         {
             InitializeComponent();
             //audioMultiStream = new AudioMultiStream();
@@ -29,8 +29,8 @@ namespace SpectrumAnalyzer
 
             if (waveStream != null && waveStream != sourceWaveStream)
             {
-                if (Data != null)
-                    Data.Dispose();
+                if (data != null)
+                    data.Dispose();
                 waveStream.Dispose();
             }
             if (sourceWaveStream != null)
@@ -38,14 +38,39 @@ namespace SpectrumAnalyzer
                 waveStream = sourceWaveStream;
                 if (waveStream.WaveFormat != null)
                 {
-                    Data = new SpectrumData(waveStream,
-                        (long)(waveStream.Length / sizeof(float)),
+                    data = new SpectrumData(waveStream,
                         1024,
                         1024);
                     LoadPlotData();
                 }
             }
         }
+
+        public void UpdateFilePosition()
+        {
+            if (waveStream != null)
+            {
+                filePos.IsVisible = true;
+                var time = waveStream.CurrentTime;
+                if (!FftPlot.PlottableList.Contains(filePos))
+                {
+                    FftPlot.PlottableList.Add(filePos);
+                    filePos.Color = ScottPlot.Colors.Gray;
+                    filePos.LineWidth = 4;
+                }
+                filePos.X = time.TotalSeconds / SpectrumData.SecondsPerBuffer;
+                Refresh();
+            }
+            else
+            {
+                filePos.IsVisible = false;
+            }
+
+        }
+
+        public SpectrumData? Data => data;
+
+        public WaveStream? WaveStream => waveStream;
 
         private Plot FreqLevelPlot => spectrumPlots.Multiplot.GetPlot(0);
         private Plot FftPlot => spectrumPlots.Multiplot.GetPlot(1);
@@ -54,42 +79,22 @@ namespace SpectrumAnalyzer
         private BarPlot FreqLevelBars;
         private BarPlot TimeLevelBars;
         private Heatmap HMap = new Heatmap(new double[0, 0]);
-        double[,] HeatmapData = new double[0, 0];
+        private double[,] HeatmapData = new double[0, 0];
         private int dataHeight;
         private int dataWidth;
         private int loadedSamples;
         private double barWidth = 0.3D;
         private WaveStream? waveStream;
-        private AudioMultiStream audioMultiStream;
+        private VerticalLine filePos = new VerticalLine();
 
         //[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        private SpectrumData? Data;
+        private SpectrumData? data;
 
         private int desiredLatency = 200;
 
-        private int bufferSize => Data == null ? 0 : Data.WaveFormat.ConvertLatencyToByteSize(desiredLatency);
+        private int bufferSize => data == null ? 0 : data.WaveFormat.ConvertLatencyToByteSize(desiredLatency);
 
-        private int totalTime => Data == null ? 0 : Data.WaveFormat.AverageBytesPerSecond * desiredLatency / 1000;
-
-        private void ReadSampleSource()
-        {
-            if (Data != null)
-            {
-                int readCount = bufferSize;
-                byte[] buffer = new byte[bufferSize * sizeof(float)];
-                while (readCount >= bufferSize)
-                {
-                    readCount = Data.Read(buffer, 0, bufferSize * sizeof(float));
-                    if (readCount > 0)
-                    {
-                        float[] floats = new float[buffer.Length / sizeof(float)];
-                        Buffer.BlockCopy(buffer, 0, floats, 0, buffer.Length);
-                        loadedSamples += readCount;
-                    }
-                }
-                LoadPlotData();
-            }
-        }
+        private int totalTime => data == null ? 0 : data.WaveFormat.AverageBytesPerSecond * desiredLatency / 1000;
 
         private void SetupSubgrids()
         {
@@ -101,7 +106,7 @@ namespace SpectrumAnalyzer
             TimeLevelBars.Horizontal = false;
 
             // use a fixed layout to ensure all plots remain aligned
-            PixelPadding padding = new(20, 20, 20, 10);
+            PixelPadding padding = new(46, 10, 40, 10);
             foreach (Plot plot in spectrumPlots.Multiplot.GetPlots())
                 plot.Layout.Fixed(padding);
 
@@ -118,6 +123,7 @@ namespace SpectrumAnalyzer
             FreqLevelPlot.Axes.Left.TickLabelStyle.IsVisible = false;
             FreqLevelPlot.Axes.Left.MajorTickStyle.Length = 0;
             FreqLevelPlot.Axes.Left.MinorTickStyle.Length = 0;
+            FreqLevelPlot.Layout.Fixed(new PixelPadding(10, 10, 40, 10));
 
             spectrumPlots.Refresh();
         }
@@ -155,48 +161,44 @@ namespace SpectrumAnalyzer
             {
                 spectrumPlots.Multiplot.GetPlot(i).Clear();
             }
-            if (Data == null || Data.Length == 0)
+            if (data == null || data.Length == 0)
             {
                 LoadDummyData();
                 return;
             }
 
-            Data.ReadSource();
+            data.ReadSource();
             // load the frequency levels
             List<Bar> fBars = FreqLevelBars.Bars;
-            if (fBars.Count == 0)
+            fBars.Clear();
+            for (int i = 0; i < data.FrequencyMags.Count() / 2; i++)
             {
-                for (int i = 0; i < Data.FrequencyMags.Count() / 2; i++)
+                var bar = new Bar()
                 {
-                    var bar = new Bar()
-                    {
-                        Position = i,
-                        Size = barWidth,
-                        Value = Data.FrequencyMags[i].AvgValue,
-                        Error = Data.FrequencyMags[i].Range / 2,
-                        Orientation = ScottPlot.Orientation.Horizontal
-                    };
-                    fBars.Add(bar);
-                }
+                    Position = i,
+                    Size = barWidth,
+                    Value = data.FrequencyMags[i].AvgValue,
+                    Error = data.FrequencyMags[i].Range / 2,
+                    Orientation = ScottPlot.Orientation.Horizontal
+                };
+                fBars.Add(bar);
             }
             var fBarPlot = FreqLevelPlot.Add.Bars(fBars);
 
             // load the frequency levels
             List<Bar> tBars = TimeLevelBars.Bars;
-            if (tBars.Count == 0)
+            tBars.Clear();
+            for (int i = 0; i < data.FftCount; i++)
             {
-                for (int i = 0; i < Data.FftCount; i++)
+                var bar = new Bar()
                 {
-                    var bar = new Bar()
-                    {
-                        Position = i,
-                        Size = barWidth,
-                        Value = Data.TimeMags[i].AvgValue,
-                        Error = Data.TimeMags[i].Range / 2,
-                        Orientation = ScottPlot.Orientation.Vertical
-                    };
-                    tBars.Add(bar);
-                }
+                    Position = i,
+                    Size = barWidth,
+                    Value = data.TimeMags[i].AvgValue,
+                    Error = data.TimeMags[i].Range / 2,
+                    Orientation = ScottPlot.Orientation.Vertical
+                };
+                tBars.Add(bar);
             }
             var tBarPlot = PowerPlot.Add.Bars(tBars);
 
@@ -206,17 +208,48 @@ namespace SpectrumAnalyzer
 
             //spectrumPlots.Multiplot.SharedAxes.ShareX([FftPlot, PowerPlot]);
 
-            HeatmapData = new double[Data.FftWindowSize / 2, Data.FftColumns.GetLength(0)];
-            for (int x = 0; x < Data.FftColumns.GetLength(0); x++)
+            static string HzTickLabelFormatter(double y) => $"{(2 * y * SpectrumData.HertzFactor):N0}";
+            static string TimeTickLabelFormatter(double y) => $"{(y * SpectrumData.SecondsPerBuffer):00.00}";
+
+            ScottPlot.TickGenerators.NumericFixedInterval leftTickGen = new ScottPlot.TickGenerators.NumericFixedInterval(50.0F/SpectrumData.HertzFactor);
+
+            ScottPlot.TickGenerators.NumericFixedInterval bottomTickGen = new ScottPlot.TickGenerators.NumericFixedInterval(1.0F/SpectrumData.SecondsPerBuffer);
+
+            // tell our major tick generator to only show major ticks that are whole integers
+           // leftTickGen.TickDensity = 1;
+           // leftTickGen.IntegerTicksOnly = true;
+            // tell our custom tick generator to use our new label formatter
+            leftTickGen.LabelFormatter = HzTickLabelFormatter;
+            // tell the left axis to use our custom tick generator
+            FftPlot.Axes.Left.TickGenerator = leftTickGen;
+
+            //bottomTickGen.IntegerTicksOnly = false;
+            bottomTickGen.LabelFormatter = TimeTickLabelFormatter;
+            FftPlot.Axes.Bottom.TickGenerator = bottomTickGen;
+            FftPlot.Axes.Bottom.Label.Text = "Seconds";
+            FftPlot.Axes.Bottom.Label.FontSize = 11;
+
+            FftPlot.Axes.Left.Label.Text = "Hz";
+            FftPlot.Axes.Left.Label.FontSize = 11;
+            PowerPlot.Axes.Bottom.Label.Text = "FFT Windows";
+            PowerPlot.Axes.Bottom.Label.FontSize = 11;
+
+            HeatmapData = new double[data.FftWindowSize / 2, data.FftColumns.GetLength(0)];
+            double maxMag = 0;
+            for (int x = 0; x < data.FftColumns.GetLength(0); x++)
             {
-                for (int y = 0; y < Data.FftWindowSize / 2; y++)
+                for (int y = 0; y < data.FftWindowSize / 2; y++)
                 {
-                    HeatmapData[(Data.FftWindowSize / 2) - 1 - y, x] = Data.FftColumns[x, y].Magnitude;
+                    double mag = data.FftColumns[x, y].Magnitude;
+                    HeatmapData[(data.FftWindowSize / 2) - 1 - y, x] = mag;
+                    if (mag > maxMag) maxMag = mag;
                 }
             }
 
             FftPlot.PlottableList.Remove(HMap);
             HMap = new ScottPlot.Plottables.Heatmap(HeatmapData);
+            HMap.Smooth = true;
+            HMap.ManualRange = new ScottPlot.Range(0, maxMag);
             HMap.Colormap = new ScottPlot.Colormaps.Turbo();
             //RenderPack rp = new RenderPack();
             //HMap.Render();
