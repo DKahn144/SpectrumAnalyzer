@@ -178,7 +178,7 @@ namespace SpectrumAnalyzer
                     Position = i,
                     Size = barWidth,
                     Value = data.FrequencyMags[i].AvgValue,
-                    Error = data.FrequencyMags[i].Range / 2,
+                    Error = data.FrequencyMags[i].RMSValue,
                     Orientation = ScottPlot.Orientation.Horizontal
                 };
                 fBars.Add(bar);
@@ -195,7 +195,7 @@ namespace SpectrumAnalyzer
                     Position = i,
                     Size = barWidth,
                     Value = data.TimeMags[i].AvgValue,
-                    Error = data.TimeMags[i].Range / 2,
+                    Error = data.TimeMags[i].RMSValue,
                     Orientation = ScottPlot.Orientation.Vertical
                 };
                 tBars.Add(bar);
@@ -209,7 +209,7 @@ namespace SpectrumAnalyzer
             //spectrumPlots.Multiplot.SharedAxes.ShareX([FftPlot, PowerPlot]);
 
             static string HzTickLabelFormatter(double y) => $"{(2 * y * SpectrumData.HertzFactor):N0}";
-            static string TimeTickLabelFormatter(double y) => $"{(y * SpectrumData.SecondsPerBuffer):00.00}";
+            static string TimeTickLabelFormatter(double y) => $"{(y * SpectrumData.SecondsPerBuffer):00}";
 
             ScottPlot.TickGenerators.NumericFixedInterval leftTickGen = new ScottPlot.TickGenerators.NumericFixedInterval(50.0F/SpectrumData.HertzFactor);
 

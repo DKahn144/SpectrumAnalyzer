@@ -12,11 +12,6 @@ namespace SpectrumAnalyzer
 
         private string selectedFileName;
 
-        private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
-        {
-
-        }
-
         private void btnOpenFile_Click(object sender, EventArgs e)
         {
             var openFileDialog = new OpenFileDialog();

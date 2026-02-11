@@ -11,11 +11,24 @@ namespace SpectrumAnalyzer
 
         public List<float> Values = new List<float>();
 
+        private float avgValue;
+
         public float AvgValue => Values.Average();
 
         public float MaxValue => Values.Max();
 
         public float MinValue => Values.Min();
+
+        /// <summary>
+        /// Root-mean-square value from average
+        /// </summary>
+        public float RMSValue {
+            get
+            {
+                avgValue = AvgValue;
+                return (float) Math.Sqrt(Values.Select(v => (avgValue - v) * (avgValue - v)).Sum()/Values.Count);
+            }
+        }
 
         public float Range => (MaxValue - MinValue)/2;
 
