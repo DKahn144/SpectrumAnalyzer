@@ -1,21 +1,20 @@
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
 namespace SpectrumAnalyzer
 {
-    public partial class SpectrumViewer : Form
+    public partial class SpectrumDetailViewer : Form
     {
-        public SpectrumViewer()
+        public SpectrumDetailViewer()
         {
             InitializeComponent();
         }
 
-        private string selectedFileName;
+        public SpectrumAnalysisControl SpectrumAnalysisControl => spectrumAnalysisControl1;
 
-        private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
-        {
+        // private string selectedFileName = "";
 
-        }
-
+        /*
         private void btnOpenFile_Click(object sender, EventArgs e)
         {
             var openFileDialog = new OpenFileDialog();
@@ -34,9 +33,8 @@ namespace SpectrumAnalyzer
                     lblTotalTime.Text = reader.TotalTime.ToString();
                     selectedFileName = openFileDialog.FileName;
                     tbxCurrentFile.Text = $"{Path.GetFileName(selectedFileName)}";
-                    fileReader = new AudioFileReader(selectedFileName);
-                    lblFileInfo.Text = fileReader.WaveFormat.ToString();
-                    lblTotalTime.Text = fileReader.TotalTime.ToString();
+                    fileReader = reader;
+                    spectrumAnalysisControl1.SetAudioFileSource(fileReader);
                 }
                 catch (Exception ex)
                 {
@@ -45,10 +43,12 @@ namespace SpectrumAnalyzer
                 }
             }
         }
-
         private AudioFileReader fileReader;
-        private IWavePlayer? wavePlayer;
+        */
 
+        private IWaveProvider? waveProvider;
+
+        private IWavePlayer? wavePlayer;
 
 
         private void btnPlay_Click(object sender, EventArgs e)
@@ -95,7 +95,7 @@ namespace SpectrumAnalyzer
 
                 try
                 {
-                    wavePlayer?.Init(fileReader);
+                    wavePlayer?.Init(waveProvider);
                     // we don't necessarily know the output format until we have initialized
                     //textBoxPlaybackFormat.Text = $"{wavePlayer.OutputWaveFormat}";
                 }
@@ -130,9 +130,9 @@ namespace SpectrumAnalyzer
             {
                 MessageBox.Show(e.Exception.Message, "Playback Device Error");
             }
-            if (fileReader != null)
+            if (waveProvider is Stream)
             {
-                fileReader.Position = 0;
+                (waveProvider as Stream)!.Position = 0;
             }
         }
 
@@ -163,14 +163,12 @@ namespace SpectrumAnalyzer
         private void timer1_Tick(object sender, EventArgs e)
         {
             spectrumAnalysisControl1.UpdateFilePosition();
-            if (wavePlayer != null && fileReader != null)
+            if (wavePlayer != null && waveProvider is WaveStream)
             {
-                TimeSpan currentTime = (wavePlayer.PlaybackState == PlaybackState.Stopped) ? TimeSpan.Zero : fileReader.CurrentTime;
+                TimeSpan currentTime = (wavePlayer.PlaybackState == PlaybackState.Stopped) ? TimeSpan.Zero : (waveProvider as  WaveStream)!.CurrentTime;
                 toolStripLabelCurrentTime.Text = String.Format("{0:00}:{1:00.00}", (int)currentTime.TotalMinutes,
                     currentTime.Seconds);
             }
         }
-
-        public AudioFileReader FileReader => fileReader;
     }
 }

@@ -1,6 +1,7 @@
-﻿namespace SpectrumAnalyzer
+﻿
+namespace SpectrumAnalyzer
 {
-    partial class SpectrumViewer
+    partial class SpectrumDetailViewer
     {
         /// <summary>
         ///  Required designer variable.
@@ -32,7 +33,6 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SpectrumDetailViewer));
             PaneltoolStrip = new Panel();
             toolStrip1 = new ToolStrip();
-            btnOpenFile = new ToolStripButton();
             btnPlay = new ToolStripButton();
             btnPause = new ToolStripButton();
             btnStop = new ToolStripButton();
@@ -40,7 +40,13 @@
             lblFileInfo = new ToolStripLabel();
             toolStripSeparator1 = new ToolStripSeparator();
             lblTotalTime = new ToolStripLabel();
+            toolStripLabelCurrentTime = new ToolStripLabel();
+            panel1 = new Panel();
+            spectrumAnalysisControl1 = new SpectrumAnalysisControl();
+            timer1 = new System.Windows.Forms.Timer(components);
+            PaneltoolStrip.SuspendLayout();
             toolStrip1.SuspendLayout();
+            panel1.SuspendLayout();
             SuspendLayout();
             // 
             // PaneltoolStrip
@@ -56,23 +62,12 @@
             // toolStrip1
             // 
             toolStrip1.Dock = DockStyle.None;
-            toolStrip1.Items.AddRange(new ToolStripItem[] { btnOpenFile, btnPlay, btnPause, btnStop, tbxCurrentFile, lblFileInfo, toolStripSeparator1, lblTotalTime, toolStripLabelCurrentTime });
+            toolStrip1.Items.AddRange(new ToolStripItem[] { btnPlay, btnPause, btnStop, tbxCurrentFile, lblFileInfo, toolStripSeparator1, lblTotalTime, toolStripLabelCurrentTime });
             toolStrip1.Location = new Point(8, 1);
             toolStrip1.Name = "toolStrip1";
             toolStrip1.Size = new Size(505, 25);
             toolStrip1.TabIndex = 7;
             toolStrip1.Text = "toolStrip1";
-            // 
-            // btnOpenFile
-            // 
-            btnOpenFile.DisplayStyle = ToolStripItemDisplayStyle.Image;
-            btnOpenFile.Image = Properties.Resources.OpenFile;
-            btnOpenFile.ImageTransparentColor = Color.Magenta;
-            btnOpenFile.Name = "btnOpenFile";
-            btnOpenFile.Size = new Size(23, 22);
-            btnOpenFile.Text = "btnOpen";
-            btnOpenFile.ToolTipText = "Open File";
-            btnOpenFile.Click += btnOpenFile_Click;
             // 
             // btnPlay
             // 
@@ -82,6 +77,7 @@
             btnPlay.Name = "btnPlay";
             btnPlay.Size = new Size(23, 22);
             btnPlay.Text = "btnPlay";
+            btnPlay.Click += btnPlay_Click;
             // 
             // btnPause
             // 
@@ -92,6 +88,7 @@
             btnPause.Size = new Size(23, 22);
             btnPause.Text = "toolStripButton3";
             btnPause.ToolTipText = "btnPause";
+            btnPause.Click += btnPause_Click;
             // 
             // btnStop
             // 
@@ -102,6 +99,7 @@
             btnStop.Size = new Size(23, 22);
             btnStop.Text = "btnStop";
             btnStop.ToolTipText = "stop playing";
+            btnStop.Click += btnStop_Click;
             // 
             // tbxCurrentFile
             // 
@@ -171,6 +169,7 @@
             PaneltoolStrip.PerformLayout();
             toolStrip1.ResumeLayout(false);
             toolStrip1.PerformLayout();
+            panel1.ResumeLayout(false);
             ResumeLayout(false);
         }
 
