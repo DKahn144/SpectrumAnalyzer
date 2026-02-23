@@ -113,7 +113,7 @@ namespace SpectrumAnalyzer
         private void CreateWaveOut()
         {
             CloseWaveOut();
-            var latency = 1024;
+            var latency = SpectrumAnalysisControl.FFTWindowSize;
             wavePlayer = CreateWaveOutDevice(latency);
             wavePlayer?.PlaybackStopped += OnPlaybackStopped;
         }

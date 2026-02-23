@@ -32,12 +32,15 @@ namespace SpectrumAnalyzer
         {
             spectrumPlots = new ScottPlot.WinForms.FormsPlot();
             pnlInfo = new Panel();
+            btnClearAnalysis = new Button();
             btnAnalyze = new Button();
             tbxSelection = new TextBox();
             lblSelection = new System.Windows.Forms.Label();
             tbxMouseHz = new TextBox();
+            tbxFFTWindowSize = new TextBox();
             tbxMouseTime = new TextBox();
             label2 = new System.Windows.Forms.Label();
+            lblFFTWindow = new System.Windows.Forms.Label();
             label1 = new System.Windows.Forms.Label();
             richTextBox1 = new RichTextBox();
             lblInfo = new System.Windows.Forms.Label();
@@ -60,12 +63,15 @@ namespace SpectrumAnalyzer
             // 
             pnlInfo.BackColor = SystemColors.GradientActiveCaption;
             pnlInfo.BorderStyle = BorderStyle.FixedSingle;
+            pnlInfo.Controls.Add(btnClearAnalysis);
             pnlInfo.Controls.Add(btnAnalyze);
             pnlInfo.Controls.Add(tbxSelection);
             pnlInfo.Controls.Add(lblSelection);
             pnlInfo.Controls.Add(tbxMouseHz);
+            pnlInfo.Controls.Add(tbxFFTWindowSize);
             pnlInfo.Controls.Add(tbxMouseTime);
             pnlInfo.Controls.Add(label2);
+            pnlInfo.Controls.Add(lblFFTWindow);
             pnlInfo.Controls.Add(label1);
             pnlInfo.Controls.Add(richTextBox1);
             pnlInfo.Controls.Add(lblInfo);
@@ -74,6 +80,16 @@ namespace SpectrumAnalyzer
             pnlInfo.Name = "pnlInfo";
             pnlInfo.Size = new Size(132, 552);
             pnlInfo.TabIndex = 0;
+            // 
+            // btnClearAnalysis
+            // 
+            btnClearAnalysis.Location = new Point(26, 455);
+            btnClearAnalysis.Name = "btnClearAnalysis";
+            btnClearAnalysis.Size = new Size(75, 23);
+            btnClearAnalysis.TabIndex = 8;
+            btnClearAnalysis.Text = "Clear";
+            btnClearAnalysis.UseVisualStyleBackColor = true;
+            btnClearAnalysis.Click += btnClearAnalysis_Click;
             // 
             // btnAnalyze
             // 
@@ -113,6 +129,17 @@ namespace SpectrumAnalyzer
             tbxMouseHz.TabIndex = 4;
             tbxMouseHz.Text = "0";
             // 
+            // tbxFFTWindowSize
+            // 
+            tbxFFTWindowSize.BackColor = SystemColors.ControlLightLight;
+            tbxFFTWindowSize.Location = new Point(82, 223);
+            tbxFFTWindowSize.Name = "tbxFFTWindowSize";
+            tbxFFTWindowSize.Size = new Size(44, 23);
+            tbxFFTWindowSize.TabIndex = 3;
+            tbxFFTWindowSize.Text = "1024";
+            tbxFFTWindowSize.TextChanged += tbxFFTWindowSize_TextChanged;
+            tbxFFTWindowSize.LostFocus += TbxFFTWindowSize_LostFocus;
+            // 
             // tbxMouseTime
             // 
             tbxMouseTime.BackColor = SystemColors.ControlLightLight;
@@ -132,6 +159,15 @@ namespace SpectrumAnalyzer
             label2.TabIndex = 2;
             label2.Text = "Mouse Hz:";
             // 
+            // lblFFTWindow
+            // 
+            lblFFTWindow.AutoSize = true;
+            lblFFTWindow.Location = new Point(3, 226);
+            lblFFTWindow.Name = "lblFFTWindow";
+            lblFFTWindow.Size = new Size(74, 15);
+            lblFFTWindow.TabIndex = 2;
+            lblFFTWindow.Text = "FFT window:";
+            // 
             // label1
             // 
             label1.AutoSize = true;
@@ -145,9 +181,9 @@ namespace SpectrumAnalyzer
             // 
             richTextBox1.Location = new Point(3, 32);
             richTextBox1.Name = "richTextBox1";
-            richTextBox1.Size = new Size(123, 268);
+            richTextBox1.Size = new Size(123, 181);
             richTextBox1.TabIndex = 1;
-            richTextBox1.Text = "Shift-scroll to expand vertically.\nCtrl-scroll to expand horizontally.\nClick-drag to zoom.\nAlt-drag to select analysis rectangle.\n";
+            richTextBox1.Text = "Shift-scroll to expand vertically.\nCtrl-scroll to expand horizontally.\nClick-drag to zoom.\nAlt-drag to select analysis rectangle.\nAlt-shift-drag to select one frequency.\n";
             // 
             // lblInfo
             // 
@@ -204,5 +240,9 @@ namespace SpectrumAnalyzer
         private System.Windows.Forms.Label lblSelection;
         private Button btnAnalyze;
         private ScottPlot.WinForms.FormsPlot formsPlot1;
+        private Button button1;
+        private Button btnClearAnalysis;
+        private TextBox tbxFFTWindowSize;
+        private System.Windows.Forms.Label lblFFTWindow;
     }
 }

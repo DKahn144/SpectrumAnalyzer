@@ -98,19 +98,17 @@ namespace SpectrumAnalyzer
         /// <param name="_sampleCount">Total number of samples (audio values) expected</param>
         /// <param name="_bufferSize">Number of samples in one buffer read</param>
         /// <param name="_fftWindowSize">Number of samples to be fed into each FFT window</param>
-        public SpectrumData(WaveStream source, int _bufferSize = 1024, int _fftWindowSize = 1024) 
+        public SpectrumData(WaveStream source) 
             : base(source, source.WaveFormat)
         {
-            if (_bufferSize == 0)
-                throw new ArgumentOutOfRangeException("SpectrumData: buffer size must be non-zero.");
             sourceStream = source;
-            bufferSize = _bufferSize;
-            fftWindowSize = _fftWindowSize;
+            bufferSize = SpectrumAnalysisControl.FFTWindowSize;
+            fftWindowSize = SpectrumAnalysisControl.FFTWindowSize;
             ResetArrays();
         }
 
-        public SpectrumData(WaveStream source, System.Numerics.Complex[,] fftSelection, int _bufferSize = 1024, int _fftWindowSize = 1024)
-            : this(source, _bufferSize, _fftWindowSize)
+        public SpectrumData(WaveStream source, System.Numerics.Complex[,] fftSelection)
+            : this(source)
         {
             this.fftSelection = fftSelection;
             this.fftLoaded = true;
