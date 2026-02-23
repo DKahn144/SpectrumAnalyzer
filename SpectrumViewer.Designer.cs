@@ -45,6 +45,7 @@
             timer1 = new System.Windows.Forms.Timer(components);
             PaneltoolStrip.SuspendLayout();
             toolStrip1.SuspendLayout();
+            panel1.SuspendLayout();
             SuspendLayout();
             // 
             // PaneltoolStrip
@@ -172,6 +173,8 @@
             PaneltoolStrip.PerformLayout();
             toolStrip1.ResumeLayout(false);
             toolStrip1.PerformLayout();
+            panel1.ResumeLayout(false);
+            panel1.PerformLayout();
             ResumeLayout(false);
         }
 

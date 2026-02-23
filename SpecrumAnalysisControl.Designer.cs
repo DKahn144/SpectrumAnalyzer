@@ -48,7 +48,6 @@ namespace SpectrumAnalyzer
             // 
             // spectrumPlots
             // 
-            spectrumPlots.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             spectrumPlots.BackColor = SystemColors.ControlDark;
             spectrumPlots.DisplayScale = 1F;
             spectrumPlots.Location = new Point(102, 0);
