@@ -26,7 +26,7 @@ namespace SpectrumAnalyzer
             get
             {
                 avgValue = AvgValue;
-                return (float) (Values.Count == 0 ? 0F : Math.Sqrt(Values.Select(v => (avgValue - v) * (avgValue - v)).Sum()/Values.Count));
+                return (float) (Values.Count == 0 ? 0F : Math.Sqrt(Values.Select(v => (avgValue - v) * (avgValue - v)).Sum())/Values.Count);
             }
         }
 

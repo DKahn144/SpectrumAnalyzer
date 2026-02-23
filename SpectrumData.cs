@@ -205,22 +205,6 @@ namespace SpectrumAnalyzer
             return bytesRead;
         }
 
-        /*
-        private void LoadFftColumn(System.Numerics.Complex[] column, int fftIndex)
-        {
-            // starting time of data
-            float currenttime = (float) lastFftPosition / WaveFormat.SampleRate;
-            if (fftRect.Left >= currenttime && fftRect.Right < currenttime)
-            {
-                for (int j = 0; j < fftWindowSize; j++)
-                {
-                    if (fftRect.Bottom >= j * HertzFactor && fftRect.Top < j * HertzFactor)
-                        column[j] = fftColumns[fftIndex, j];
-                }
-            }
-        }
-        */
-
         public int AddFftColumn(System.Numerics.Complex[] fftColumn, int index)
         {
             for (int j = 0; j < fftWindowSize; j++)
@@ -248,6 +232,12 @@ namespace SpectrumAnalyzer
                 fftColumns[fftIndex, j] = fftColumn[j];
             }
             return fftColumn;
+        }
+
+        public System.Numerics.Complex[] PerformFFTInPlace(System.Numerics.Complex[] samples)
+        {
+            FftSharp.FFT.Forward(samples);
+            return samples;
         }
 
         private void AddMagnitudes(System.Numerics.Complex[] fftCol, int fftInd)

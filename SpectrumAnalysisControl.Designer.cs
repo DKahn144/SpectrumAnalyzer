@@ -2,7 +2,7 @@
 
 namespace SpectrumAnalyzer
 {
-    partial class SpecrumAnalysisControl
+    partial class SpectrumAnalysisControl
     {
         /// <summary> 
         /// Required designer variable.
@@ -31,8 +31,6 @@ namespace SpectrumAnalyzer
         private void InitializeComponent()
         {
             spectrumPlots = new ScottPlot.WinForms.FormsPlot();
-            panel1 = new Panel();
-            panel2 = new Panel();
             pnlInfo = new Panel();
             btnAnalyze = new Button();
             tbxSelection = new TextBox();
@@ -43,37 +41,20 @@ namespace SpectrumAnalyzer
             label1 = new System.Windows.Forms.Label();
             richTextBox1 = new RichTextBox();
             lblInfo = new System.Windows.Forms.Label();
+            formsPlot1 = new ScottPlot.WinForms.FormsPlot();
             pnlInfo.SuspendLayout();
             SuspendLayout();
             // 
             // spectrumPlots
             // 
-            spectrumPlots.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             spectrumPlots.BackColor = SystemColors.ControlDark;
             spectrumPlots.DisplayScale = 1F;
-            spectrumPlots.Location = new Point(102, 0);
+            spectrumPlots.Dock = DockStyle.Fill;
+            spectrumPlots.Location = new Point(132, 0);
             spectrumPlots.Margin = new Padding(2);
             spectrumPlots.Name = "spectrumPlots";
-            spectrumPlots.Size = new Size(877, 591);
+            spectrumPlots.Size = new Size(791, 552);
             spectrumPlots.TabIndex = 0;
-            // 
-            // panel1
-            // 
-            panel1.Dock = DockStyle.Left;
-            panel1.Location = new Point(0, 67);
-            panel1.Name = "panel1";
-            panel1.Size = new Size(97, 524);
-            panel1.TabIndex = 1;
-            // 
-            // panel2
-            // 
-            panel2.BackColor = SystemColors.GradientActiveCaption;
-            panel2.BorderStyle = BorderStyle.FixedSingle;
-            panel2.Dock = DockStyle.Top;
-            panel2.Location = new Point(0, 0);
-            panel2.Name = "panel2";
-            panel2.Size = new Size(1006, 67);
-            panel2.TabIndex = 0;
             // 
             // pnlInfo
             // 
@@ -88,15 +69,15 @@ namespace SpectrumAnalyzer
             pnlInfo.Controls.Add(label1);
             pnlInfo.Controls.Add(richTextBox1);
             pnlInfo.Controls.Add(lblInfo);
-            pnlInfo.Dock = DockStyle.Fill;
+            pnlInfo.Dock = DockStyle.Left;
             pnlInfo.Location = new Point(0, 0);
             pnlInfo.Name = "pnlInfo";
-            pnlInfo.Size = new Size(124, 591);
+            pnlInfo.Size = new Size(132, 552);
             pnlInfo.TabIndex = 0;
             // 
             // btnAnalyze
             // 
-            btnAnalyze.Location = new Point(19, 426);
+            btnAnalyze.Location = new Point(26, 426);
             btnAnalyze.Name = "btnAnalyze";
             btnAnalyze.Size = new Size(75, 23);
             btnAnalyze.TabIndex = 7;
@@ -110,7 +91,7 @@ namespace SpectrumAnalyzer
             tbxSelection.Location = new Point(3, 397);
             tbxSelection.Name = "tbxSelection";
             tbxSelection.ReadOnly = true;
-            tbxSelection.Size = new Size(117, 23);
+            tbxSelection.Size = new Size(124, 23);
             tbxSelection.TabIndex = 6;
             // 
             // lblSelection
@@ -128,7 +109,7 @@ namespace SpectrumAnalyzer
             tbxMouseHz.Location = new Point(82, 343);
             tbxMouseHz.Name = "tbxMouseHz";
             tbxMouseHz.ReadOnly = true;
-            tbxMouseHz.Size = new Size(37, 23);
+            tbxMouseHz.Size = new Size(44, 23);
             tbxMouseHz.TabIndex = 4;
             tbxMouseHz.Text = "0";
             // 
@@ -138,7 +119,7 @@ namespace SpectrumAnalyzer
             tbxMouseTime.Location = new Point(82, 318);
             tbxMouseTime.Name = "tbxMouseTime";
             tbxMouseTime.ReadOnly = true;
-            tbxMouseTime.Size = new Size(37, 23);
+            tbxMouseTime.Size = new Size(44, 23);
             tbxMouseTime.TabIndex = 3;
             tbxMouseTime.Text = "0";
             // 
@@ -164,7 +145,7 @@ namespace SpectrumAnalyzer
             // 
             richTextBox1.Location = new Point(3, 32);
             richTextBox1.Name = "richTextBox1";
-            richTextBox1.Size = new Size(117, 268);
+            richTextBox1.Size = new Size(123, 268);
             richTextBox1.TabIndex = 1;
             richTextBox1.Text = "Shift-scroll to expand vertically.\nCtrl-scroll to expand horizontally.\nClick-drag to zoom.\nAlt-drag to select analysis rectangle.\n";
             // 
@@ -177,22 +158,25 @@ namespace SpectrumAnalyzer
             lblInfo.TabIndex = 0;
             lblInfo.Text = "Information";
             // 
-            // SpecrumAnalysisControl
+            // formsPlot1
+            // 
+            formsPlot1.DisplayScale = 1F;
+            formsPlot1.Location = new Point(103, 96);
+            formsPlot1.Name = "formsPlot1";
+            formsPlot1.Size = new Size(806, 431);
+            formsPlot1.TabIndex = 2;
+            // 
+            // SpectrumAnalysisControl
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(panel1);
-            Controls.Add(panel2);
-            Name = "SpecrumAnalysisControl";
-            Size = new Size(1006, 591);
+            Controls.Add(spectrumPlots);
+            Controls.Add(pnlInfo);
+            Name = "SpectrumAnalysisControl";
+            Size = new Size(923, 552);
             pnlInfo.ResumeLayout(false);
             pnlInfo.PerformLayout();
             ResumeLayout(false);
-        }
-
-        private void btnAnalyze_Click(object sender, EventArgs e)
-        {
-            throw new NotImplementedException();
         }
 
         #endregion
@@ -209,8 +193,6 @@ namespace SpectrumAnalyzer
         #endregion
 
         private ScottPlot.WinForms.FormsPlot spectrumPlots;
-        private Panel panel1;
-        private Panel panel2;
         private Panel pnlInfo;
         private RichTextBox richTextBox1;
         private System.Windows.Forms.Label lblInfo;
@@ -221,5 +203,6 @@ namespace SpectrumAnalyzer
         private TextBox tbxSelection;
         private System.Windows.Forms.Label lblSelection;
         private Button btnAnalyze;
+        private ScottPlot.WinForms.FormsPlot formsPlot1;
     }
 }

@@ -37,6 +37,7 @@ namespace SpectrumAnalyzer
                     fileReader = new AudioFileReader(selectedFileName);
                     lblFileInfo.Text = fileReader.WaveFormat.ToString();
                     lblTotalTime.Text = fileReader.TotalTime.ToString();
+                    spectrumAnalysisControl1.SetAudioFileSource(fileReader);
                 }
                 catch (Exception ex)
                 {
@@ -56,6 +57,7 @@ namespace SpectrumAnalyzer
             if (spectrumAnalysisControl1.Data != null &&
                 spectrumAnalysisControl1.Data.Length > 0)
             {
+                timer1.Enabled = true;
                 if (wavePlayer != null)
                 {
                     if (wavePlayer.PlaybackState == PlaybackState.Playing)
