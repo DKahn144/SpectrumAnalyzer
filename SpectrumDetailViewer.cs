@@ -114,6 +114,7 @@ namespace SpectrumAnalyzer
             var latency = SpectrumAnalysisControl.FFTWindowSize;
             wavePlayer = CreateWaveOutDevice(latency);
             wavePlayer?.PlaybackStopped += OnPlaybackStopped;
+            waveProvider = spectrumAnalysisControl1.WaveStream as IWaveProvider;
         }
 
         private IWavePlayer? CreateWaveOutDevice(int latency)

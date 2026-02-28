@@ -32,6 +32,10 @@ namespace SpectrumAnalyzer
         {
             spectrumPlots = new ScottPlot.WinForms.FormsPlot();
             pnlInfo = new Panel();
+            btnShowSignal = new Button();
+            tbxAvgVol = new TextBox();
+            lblAvgVol = new System.Windows.Forms.Label();
+            tbxAvgFreq = new TextBox();
             btnClearAnalysis = new Button();
             btnAnalyze = new Button();
             tbxSelection = new TextBox();
@@ -40,11 +44,13 @@ namespace SpectrumAnalyzer
             tbxFFTWindowSize = new TextBox();
             tbxMouseTime = new TextBox();
             label2 = new System.Windows.Forms.Label();
+            lblAvgFreq = new System.Windows.Forms.Label();
             lblFFTWindow = new System.Windows.Forms.Label();
             label1 = new System.Windows.Forms.Label();
             richTextBox1 = new RichTextBox();
             lblInfo = new System.Windows.Forms.Label();
             formsPlot1 = new ScottPlot.WinForms.FormsPlot();
+            cbxSmooth = new CheckBox();
             pnlInfo.SuspendLayout();
             SuspendLayout();
             // 
@@ -56,13 +62,18 @@ namespace SpectrumAnalyzer
             spectrumPlots.Location = new Point(132, 0);
             spectrumPlots.Margin = new Padding(2);
             spectrumPlots.Name = "spectrumPlots";
-            spectrumPlots.Size = new Size(791, 552);
+            spectrumPlots.Size = new Size(791, 625);
             spectrumPlots.TabIndex = 0;
             // 
             // pnlInfo
             // 
             pnlInfo.BackColor = SystemColors.GradientActiveCaption;
             pnlInfo.BorderStyle = BorderStyle.FixedSingle;
+            pnlInfo.Controls.Add(cbxSmooth);
+            pnlInfo.Controls.Add(btnShowSignal);
+            pnlInfo.Controls.Add(tbxAvgVol);
+            pnlInfo.Controls.Add(lblAvgVol);
+            pnlInfo.Controls.Add(tbxAvgFreq);
             pnlInfo.Controls.Add(btnClearAnalysis);
             pnlInfo.Controls.Add(btnAnalyze);
             pnlInfo.Controls.Add(tbxSelection);
@@ -71,6 +82,7 @@ namespace SpectrumAnalyzer
             pnlInfo.Controls.Add(tbxFFTWindowSize);
             pnlInfo.Controls.Add(tbxMouseTime);
             pnlInfo.Controls.Add(label2);
+            pnlInfo.Controls.Add(lblAvgFreq);
             pnlInfo.Controls.Add(lblFFTWindow);
             pnlInfo.Controls.Add(label1);
             pnlInfo.Controls.Add(richTextBox1);
@@ -78,8 +90,41 @@ namespace SpectrumAnalyzer
             pnlInfo.Dock = DockStyle.Left;
             pnlInfo.Location = new Point(0, 0);
             pnlInfo.Name = "pnlInfo";
-            pnlInfo.Size = new Size(132, 552);
+            pnlInfo.Size = new Size(132, 625);
             pnlInfo.TabIndex = 0;
+            // 
+            // btnShowSignal
+            // 
+            btnShowSignal.Location = new Point(13, 528);
+            btnShowSignal.Name = "btnShowSignal";
+            btnShowSignal.Size = new Size(101, 23);
+            btnShowSignal.TabIndex = 12;
+            btnShowSignal.Text = "Show signal";
+            btnShowSignal.UseVisualStyleBackColor = true;
+            btnShowSignal.Click += btnShowSignal_Click;
+            // 
+            // tbxAvgVol
+            // 
+            tbxAvgVol.Location = new Point(82, 280);
+            tbxAvgVol.Name = "tbxAvgVol";
+            tbxAvgVol.Size = new Size(44, 23);
+            tbxAvgVol.TabIndex = 11;
+            // 
+            // lblAvgVol
+            // 
+            lblAvgVol.AutoSize = true;
+            lblAvgVol.Location = new Point(3, 283);
+            lblAvgVol.Name = "lblAvgVol";
+            lblAvgVol.Size = new Size(50, 15);
+            lblAvgVol.TabIndex = 10;
+            lblAvgVol.Text = "Avg Vol:";
+            // 
+            // tbxAvgFreq
+            // 
+            tbxAvgFreq.Location = new Point(82, 251);
+            tbxAvgFreq.Name = "tbxAvgFreq";
+            tbxAvgFreq.Size = new Size(44, 23);
+            tbxAvgFreq.TabIndex = 9;
             // 
             // btnClearAnalysis
             // 
@@ -159,6 +204,15 @@ namespace SpectrumAnalyzer
             label2.TabIndex = 2;
             label2.Text = "Mouse Hz:";
             // 
+            // lblAvgFreq
+            // 
+            lblAvgFreq.AutoSize = true;
+            lblAvgFreq.Location = new Point(3, 254);
+            lblAvgFreq.Name = "lblAvgFreq";
+            lblAvgFreq.Size = new Size(57, 15);
+            lblAvgFreq.TabIndex = 2;
+            lblAvgFreq.Text = "Avg Freq:";
+            // 
             // lblFFTWindow
             // 
             lblFFTWindow.AutoSize = true;
@@ -202,6 +256,18 @@ namespace SpectrumAnalyzer
             formsPlot1.Size = new Size(806, 431);
             formsPlot1.TabIndex = 2;
             // 
+            // cbxSmooth
+            // 
+            cbxSmooth.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            cbxSmooth.AutoSize = true;
+            cbxSmooth.Location = new Point(26, 590);
+            cbxSmooth.Name = "cbxSmooth";
+            cbxSmooth.Size = new Size(68, 19);
+            cbxSmooth.TabIndex = 13;
+            cbxSmooth.Text = "Smooth";
+            cbxSmooth.UseVisualStyleBackColor = true;
+            cbxSmooth.CheckedChanged += cbxSmooth_CheckedChanged;
+            // 
             // SpectrumAnalysisControl
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -209,7 +275,7 @@ namespace SpectrumAnalyzer
             Controls.Add(spectrumPlots);
             Controls.Add(pnlInfo);
             Name = "SpectrumAnalysisControl";
-            Size = new Size(923, 552);
+            Size = new Size(923, 625);
             pnlInfo.ResumeLayout(false);
             pnlInfo.PerformLayout();
             ResumeLayout(false);
@@ -244,5 +310,11 @@ namespace SpectrumAnalyzer
         private Button btnClearAnalysis;
         private TextBox tbxFFTWindowSize;
         private System.Windows.Forms.Label lblFFTWindow;
+        private TextBox tbxAvgFreq;
+        private System.Windows.Forms.Label lblAvgFreq;
+        private System.Windows.Forms.Label lblAvgVol;
+        private TextBox tbxAvgVol;
+        private Button btnShowSignal;
+        private CheckBox cbxSmooth;
     }
 }
