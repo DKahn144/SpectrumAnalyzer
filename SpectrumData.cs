@@ -1,7 +1,6 @@
 ﻿using FftSharp;
 using NAudio.Dsp;
 using NAudio.Wave;
-using ScottPlot;
 using ScottPlot.Plottables;
 using System;
 using System.Collections.Generic;
@@ -46,34 +45,33 @@ namespace SpectrumAnalyzer
         /// </summary>
         public int BufferSize => bufferSize;
 
-        public string FileName => fileName;
-
         /// <summary>
         /// Current number of entries into the FFT array
         /// </summary>
-        public long FftIndex => fftIndex;
+        public long FftCount => fftIndex;
 
-        public float HertzFactor => getHertzFactor();
+        public static float HertzFactor => getHertzFactor();
+        public static double SecondsPerBuffer => getSecondsPerBuffer();
+        public static SpectrumData? CurrentData => currentData;
 
-        public double SecondsPerBuffer => getSecondsPerBuffer();
+        private static SpectrumData? currentData = null;
+        private static float hertzFactor = 0;
+        private static double secondsPerBuffer = 0;
 
-        public int FftCount => (int) sourceStream.Length / (fftWindowSize * bytesPerSampleTot);
-
-        private float hertzFactor = 0;
-        private float getHertzFactor()
+        private static float getHertzFactor()
         {
-            if (hertzFactor == 0 && fftWindowSize > 0)
+            if (hertzFactor == 0 && currentData != null && currentData.fftWindowSize > 0)
             {
-                hertzFactor = (float) WaveFormat.SampleRate / (fftWindowSize * 2);
+                hertzFactor = (float) currentData.WaveFormat.SampleRate / (currentData.fftWindowSize * 2);
             }
             return hertzFactor;
         }
-        private double secondsPerBuffer = 0;
-        private double getSecondsPerBuffer()
+
+        private static double getSecondsPerBuffer()
         {
-            if (secondsPerBuffer == 0 && fftWindowSize > 0)
+            if (secondsPerBuffer == 0 && currentData != null && currentData.fftWindowSize > 0)
             {
-                secondsPerBuffer = ((double) fftWindowSize) / WaveFormat.SampleRate;
+                secondsPerBuffer = ((double) currentData.fftWindowSize) / currentData.WaveFormat.SampleRate;
             }
             return secondsPerBuffer;
         }
@@ -90,12 +88,7 @@ namespace SpectrumAnalyzer
         private ValueMeasure[] timeMags = new ValueMeasure[0];
         private float[] sampleValues = new float[0];
         private System.Numerics.Complex[,] fftColumns = new System.Numerics.Complex[0,0];
-        private bool fftLoaded;
-        private System.Numerics.Complex[,]? fftSelection;
-        private int fftSelectionHeight = 0;
         private IWindow fftWindow = Window.GetWindows().First(w => w.Name == "Hanning");
-        private FftRecords fftRecords;
-        private string fileName;
 
         /// <summary>
         /// 
@@ -104,42 +97,29 @@ namespace SpectrumAnalyzer
         /// <param name="_sampleCount">Total number of samples (audio values) expected</param>
         /// <param name="_bufferSize">Number of samples in one buffer read</param>
         /// <param name="_fftWindowSize">Number of samples to be fed into each FFT window</param>
-        public SpectrumData(WaveStream source, string _fileName) 
+        public SpectrumData(WaveStream source, int _bufferSize = 1024, int _fftWindowSize = 1024) 
             : base(source, source.WaveFormat)
         {
+            if (_bufferSize == 0)
+                throw new ArgumentOutOfRangeException("SpectrumData: buffer size must be non-zero.");
             sourceStream = source;
-            fileName = _fileName;
-            bufferSize = SpectrumAnalysisControl.FFTWindowSize;
-            fftWindowSize = SpectrumAnalysisControl.FFTWindowSize;
-            fftRecords = new FftRecords(this);
+            bufferSize = _bufferSize;
+            fftWindowSize = _fftWindowSize;
+            SpectrumData.currentData = this;
+            bytesPerSampleTot = sourceStream.WaveFormat.BitsPerSample * sourceStream.WaveFormat.Channels / 8;
             ResetArrays();
-        }
-
-        public SpectrumData(WaveStream source, System.Numerics.Complex[,] fftSelection)
-            : this(source)
-        {
-            this.fftSelection = fftSelection;
-            this.fftLoaded = true;
-            this.fftSelectionHeight = fftSelection.GetLength(1);
         }
 
         private void ResetArrays()
         {
-            if (!fftLoaded)
-            {
-                fftColumns = new System.Numerics.Complex[FftCount, fftWindowSize];
-            }
-            else
-            {
-                fftColumns = fftSelection!;
-            }
+            fftColumns = new System.Numerics.Complex[sourceStream.Length / (fftWindowSize * bytesPerSampleTot), fftWindowSize];
             sampleValues = new float[(int) sampleCount];
             timeMags = new ValueMeasure[(int) (sampleCount / bufferSize)];
             frequencyMags = new ValueMeasure[fftWindowSize];
             fftIndex = 0;
             lastFftPosition = 0;
-            hertzFactor = (float)WaveFormat.SampleRate / (fftWindowSize * 2);
-            secondsPerBuffer = ((double)fftWindowSize) / WaveFormat.SampleRate;
+            hertzFactor = 0;
+            secondsPerBuffer = 0;
         }
 
         public void OpenFileReader(string filePath)
@@ -149,15 +129,10 @@ namespace SpectrumAnalyzer
 
         public IWindow FftWindow { get { return fftWindow; } set { fftWindow = value; } }
 
-        private int bytesPerSampleTot => sourceStream.WaveFormat.BitsPerSample * sourceStream.WaveFormat.Channels / 8;
-
-        public bool FftLoaded => this.fftLoaded;
+        private int bytesPerSampleTot;
 
         public void ReadSource()
         {
-            if (fftIndex >= FftCount)
-                return;
-
             ResetArrays();
             byte[] buffer = new byte[bufferSize * bytesPerSampleTot];
             int bytesRead = 0;
@@ -166,9 +141,7 @@ namespace SpectrumAnalyzer
             {
                 bytesRead = Read(buffer, 0, buffer.Length);
                 totalBytesRead += bytesRead;
-            } 
-            while (bytesRead > 0);
-            fftRecords.BuildCrossRefLinks();
+            } while (bytesRead > 0);
         }
 
         public override int Read(byte[] buffer, int offset, int count)
@@ -189,105 +162,72 @@ namespace SpectrumAnalyzer
                     sampleValues[currenReadPosition++] = BitConverter.ToSingle(buffer, m);
                 else
                 {
+
                 }
             }
             sampleReadCount = currenReadPosition;
 
-            while (sampleReadCount - lastFftPosition >= bufferSize)
+            while (sampleReadCount - lastFftPosition >= fftWindowSize)
             {
-                double[] doubles = GetSampleArray(sampleValues, lastFftPosition);
-                System.Numerics.Complex[] fftColumn = new System.Numerics.Complex[fftWindowSize / WaveFormat.Channels];
-                if (!fftLoaded)
+                // convert to double
+                var doubles = new double[fftWindowSize];
+                for (int j = 0; j < fftWindowSize; j++)
                 {
-                    fftColumn = GenerateFFTForSamples(doubles, lastFftPosition);
-                    fftIndex = AddFftColumn(fftColumn, fftIndex);
+                    doubles[j] = Convert.ToDouble(sampleValues[lastFftPosition + j]);
                 }
-                else
+
+                FftWindow.ApplyInPlace(doubles);
+
+                // Calculate the FFT as an array of complex numbers
+                System.Numerics.Complex[] fftColumn = FftSharp.FFT.Forward(doubles);
+                // or get the magnitude (units²) or power (dB) as real numbers
+                double[] magnitude = FftSharp.FFT.Magnitude(fftColumn, false);
+                float totalMag = 0;
+                for (int j = 0; j < fftWindowSize; j++)
                 {
-                    if (fftIndex < fftSelection!.GetLength(0))
-                    {
-                        fftColumn = new System.Numerics.Complex[fftSelectionHeight];
-                        for (int i = 0; i < fftSelectionHeight; i++) fftColumn[i] = fftSelection![fftIndex, i];
-                    }
+                    fftColumns[fftIndex, j] = fftColumn[j];
+                    // Update frequency mags
+                    if (frequencyMags[j] == null)
+                        frequencyMags[j] = new ValueMeasure();
+                    frequencyMags[j].AddValue(fftIndex, (float)magnitude[j]);
+                    totalMag += (float)magnitude[j];
                 }
-                AddMagnitudes(fftColumn, fftIndex);
-                var record = new FftRecord(fftRecords, fftColumn, doubles.Select(d => Convert.ToSingle(d)).ToArray(), fftIndex++);
-                fftRecords.AddRecord(record);
-                lastFftPosition += bufferSize;
+                if (timeMags[fftIndex] == null)
+                    timeMags[fftIndex] = new ValueMeasure();
+                timeMags[fftIndex].AddValue(0, totalMag);
+                //timeMags[fftIndex].AddValue(fftIndex, totalMag / fftWindowSize);
+                fftIndex++;
+                lastFftPosition += fftWindowSize;
             }
+
             return bytesRead;
         }
 
-        private double[] GetSampleArray(float[] sampleValues, long startPosition)
+        private float[] getFrequencyMags()
         {
-            double[] doubles = new double[fftWindowSize / WaveFormat.Channels];
-            for (int j = 0; j < doubles.Length; j++)
+            float[] freqMags = new float[fftWindowSize];
+            int[] measureCounts = new int[fftWindowSize];
+            for (int i = 0; i < fftColumns.GetLength(0); i++)
             {
-                doubles[j] = Convert.ToDouble(sampleValues[startPosition + (j * WaveFormat.Channels)]);
+                for (int j = 0; j < fftWindowSize; j++)
+                {
+                    var c = fftColumns[i, j];
+                    freqMags[j] += (float) c.Magnitude;
+                    measureCounts[j]++;
+                }
             }
-            return doubles;
+            for (int j = 0; j < fftWindowSize; j++)
+            { 
+                if (measureCounts[j] > 0)
+                    freqMags[j] /= measureCounts[j];
+            }
+            return freqMags;
         }
 
-        public int AddFftColumn(System.Numerics.Complex[] fftColumn, int index)
+        private float[] getFrequencyMagRanges()
         {
-            for (int j = 0; j < fftColumn.Length; j++)
-            {
-                fftColumns[fftIndex, j] = fftColumn[j];
-            }
-            //lastFftPosition += fftWindowSize;
-            return index++;
+            throw new NotImplementedException();
         }
 
-        private System.Numerics.Complex[] GenerateFFTForSamples(double[] samples, long lastFftPosition)
-        {
-            // Convert the relevant segment of sampleValues to double[]
-            // Calculate the FFT as an array of complex numbers
-            FftWindow.ApplyInPlace(samples);
-            // Calculate the FFT as an array of complex numbers
-            System.Numerics.Complex[] fftColumn = FftSharp.FFT.Forward(samples);
-            for (int j = 0; j < fftColumn.Length; j++)
-            {
-                fftColumns[fftIndex, j] = fftColumn[j];
-            }
-            return fftColumn;
-        }
-
-        public System.Numerics.Complex[] PerformFFTInPlace(System.Numerics.Complex[] samples)
-        {
-            var doubles = samples.Select(s => s.Magnitude).ToArray();
-            FftWindow.ApplyInPlace(doubles);
-            System.Numerics.Complex[] sampleColumn = FftSharp.FFT.Forward(doubles);
-            return sampleColumn;
-        }
-
-        private void AddMagnitudes(System.Numerics.Complex[] fftCol, int fftInd)
-        {
-            // or get the magnitude (units²) or power (dB) as real numbers
-            double[] magnitude = FftSharp.FFT.Magnitude(fftCol, false);
-            float totalMag = 0;
-            for (int j = 0; j < magnitude.Length && j < frequencyMags.Length; j++)
-            {
-                // Update frequency mags
-                if (frequencyMags[j] == null)
-                    frequencyMags[j] = new ValueMeasure();
-                frequencyMags[j].AddValue(fftInd, (float)magnitude[j]);
-                totalMag += (float)magnitude[j];
-            }
-            if (timeMags.Length > fftInd)
-            {
-                if (timeMags[fftInd] == null)
-                    timeMags[fftInd] = new ValueMeasure();
-                timeMags[fftInd].AddValue(0, totalMag);
-            }
-        }
-
-        /// <summary>
-        /// get averages over this sample
-        /// </summary>
-        /// <returns>average frequency, average volume</returns>
-        internal (float, float) GetWeightedAvgFreq()
-        {
-            return fftRecords.GetAvgFreqPower();
-        }
     }
 }

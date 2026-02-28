@@ -13,11 +13,11 @@ namespace SpectrumAnalyzer
 
         private float avgValue;
 
-        public float AvgValue => (Values.Count > 0 ? Values.Average() : 0);
+        public float AvgValue => Values.Average();
 
-        public float MaxValue => (Values.Count > 0 ? Values.Max() : 0);
+        public float MaxValue => Values.Max();
 
-        public float MinValue => (Values.Count > 0 ? Values.Min() : 0);
+        public float MinValue => Values.Min();
 
         /// <summary>
         /// Root-mean-square value from average
@@ -26,7 +26,7 @@ namespace SpectrumAnalyzer
             get
             {
                 avgValue = AvgValue;
-                return (float) (Values.Count == 0 ? 0F : Math.Sqrt(Values.Select(v => (avgValue - v) * (avgValue - v)).Sum())/Values.Count);
+                return (float) Math.Sqrt(Values.Select(v => (avgValue - v) * (avgValue - v)).Sum()/Values.Count);
             }
         }
 

@@ -1,3 +1,4 @@
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
 namespace SpectrumAnalyzer
@@ -10,11 +11,6 @@ namespace SpectrumAnalyzer
         }
 
         private string selectedFileName;
-
-        private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
-        {
-
-        }
 
         private void btnOpenFile_Click(object sender, EventArgs e)
         {
@@ -34,9 +30,7 @@ namespace SpectrumAnalyzer
                     lblTotalTime.Text = reader.TotalTime.ToString();
                     selectedFileName = openFileDialog.FileName;
                     tbxCurrentFile.Text = $"{Path.GetFileName(selectedFileName)}";
-                    fileReader = new AudioFileReader(selectedFileName);
-                    lblFileInfo.Text = fileReader.WaveFormat.ToString();
-                    lblTotalTime.Text = fileReader.TotalTime.ToString();
+                    fileReader = reader;
                     spectrumAnalysisControl1.SetAudioFileSource(fileReader);
                 }
                 catch (Exception ex)
@@ -57,7 +51,6 @@ namespace SpectrumAnalyzer
             if (spectrumAnalysisControl1.Data != null &&
                 spectrumAnalysisControl1.Data.Length > 0)
             {
-                timer1.Enabled = true;
                 if (wavePlayer != null)
                 {
                     if (wavePlayer.PlaybackState == PlaybackState.Playing)
@@ -113,7 +106,7 @@ namespace SpectrumAnalyzer
         private void CreateWaveOut()
         {
             CloseWaveOut();
-            var latency = SpectrumAnalysisControl.FFTWindowSize;
+            var latency = 1024;
             wavePlayer = CreateWaveOutDevice(latency);
             wavePlayer?.PlaybackStopped += OnPlaybackStopped;
         }
@@ -168,7 +161,7 @@ namespace SpectrumAnalyzer
             if (wavePlayer != null && fileReader != null)
             {
                 TimeSpan currentTime = (wavePlayer.PlaybackState == PlaybackState.Stopped) ? TimeSpan.Zero : fileReader.CurrentTime;
-                toolStripLabelCurrentTime.Text = String.Format("{0:00}:{1:00.00}", (int)currentTime.TotalMinutes,
+                toolStripLabelCurrentTime.Text = String.Format("{0:00}:{1:00}", (int)currentTime.TotalMinutes,
                     currentTime.Seconds);
             }
         }
