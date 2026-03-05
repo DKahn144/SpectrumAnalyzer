@@ -245,13 +245,6 @@ namespace SpectrumAnalyzer
             LoadBarPlot(fBars, freqVals, ScottPlot.Orientation.Horizontal);
             FreqLevelBars = FreqLevelPlot.Add.Bars(fBars);
 
-            // Determine average weighted frequency nds display it
-            float avgFrequency = 0;
-            float avgVolume = 0;
-            (avgFrequency, avgVolume) = data.GetWeightedAvgFreq();
-            tbxAvgFreq.Text = Math.Round(avgFrequency, 1).ToString("0.0");
-            tbxAvgVol.Text = Math.Round(avgVolume, 1).ToString("0.0");
-
             // load the timespan levels
             List<Bar> tBars = TimeLevelBars.Bars;
             LoadBarPlot(tBars, data.TimeMags, ScottPlot.Orientation.Vertical);
