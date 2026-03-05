@@ -1,4 +1,5 @@
 using NAudio.Wave;
+using SpectrumProcessor;
 
 namespace SpectrumAnalyzer
 {
@@ -29,12 +30,9 @@ namespace SpectrumAnalyzer
             {
                 try
                 {
-                    var reader = new AudioFileReader(openFileDialog.FileName);
-                    lblFileInfo.Text = reader.WaveFormat.ToString();
-                    lblTotalTime.Text = reader.TotalTime.ToString();
+                    fileReader = new AudioFileSampleWaveStream(openFileDialog.FileName);
                     selectedFileName = openFileDialog.FileName;
                     tbxCurrentFile.Text = $"{Path.GetFileName(selectedFileName)}";
-                    fileReader = new AudioFileReader(selectedFileName);
                     lblFileInfo.Text = fileReader.WaveFormat.ToString();
                     lblTotalTime.Text = fileReader.TotalTime.ToString();
                     spectrumAnalysisControl1.SetAudioFileSource(fileReader);
@@ -47,9 +45,10 @@ namespace SpectrumAnalyzer
             }
         }
 
-        private AudioFileReader fileReader;
+        private AudioFileSampleWaveStream fileReader;
         private IWavePlayer? wavePlayer;
 
+        public AudioFileSampleWaveStream FileReader => fileReader;
 
 
         private void btnPlay_Click(object sender, EventArgs e)
@@ -160,7 +159,10 @@ namespace SpectrumAnalyzer
             }
         }
 
-        private void btnStop_Click(object sender, EventArgs e) => wavePlayer?.Stop();
+        private void btnStop_Click(object sender, EventArgs e)
+        {
+            wavePlayer?.Stop();
+        }
 
         private void timer1_Tick(object sender, EventArgs e)
         {
@@ -173,6 +175,5 @@ namespace SpectrumAnalyzer
             }
         }
 
-        public AudioFileReader FileReader => fileReader;
     }
 }

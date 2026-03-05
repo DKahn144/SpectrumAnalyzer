@@ -2,17 +2,32 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="SpectrumData.cs" />
+    <Compile Remove="ValueMeasure.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="FftSharp" Version="2.2.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="ScottPlot" Version="5.1.57" />
     <PackageReference Include="scottplot.winforms" Version="5.1.57" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SpectrumProcessor\SpectrumProcessor.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="SpectrumProcessor">
+      <HintPath>..\SpectrumProcessor\bin\Debug\net10.0-windows10.0.19041.0\SpectrumProcessor.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
