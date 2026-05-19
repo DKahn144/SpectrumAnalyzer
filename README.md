@@ -6,7 +6,7 @@ Recent changes:
 1. Added sound output for the selected file.
 2. Fixed axis labels to represent frequenct and time.
 3. Added multiple ways to select a rectangular area on the heatmap and drill into it further, loading the data into a new instance of the form.
-4. Added the ability to select parts of theaudio data and save as a new wav file.
+4. Added the ability to select parts of the audio data and save as a new wav file.
 
 Here is an image of the UI layout:
 
