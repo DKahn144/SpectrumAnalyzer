@@ -117,4 +117,11 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="richTextBox1.Text" xml:space="preserve">
+    <value>Shift-scroll to expand vertically.
+Ctrl-scroll to expand horizontally.
+Click-drag to zoom.
+Select a selection method then drag rectangles over the heatmap, then click "Analyze" to open the selection in a new form.
+</value>
+  </data>
 </root>

@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SpectrumViewer));
             PaneltoolStrip = new Panel();
             toolStrip1 = new ToolStrip();
             btnOpenFile = new ToolStripButton();
@@ -42,7 +43,10 @@
             toolStripLabelCurrentTime = new ToolStripLabel();
             panel1 = new Panel();
             spectrumAnalysisControl1 = new SpectrumAnalysisControl();
+            spectrumAnalysisControl1.Load += spectrumAnalysisControl1.spectrumAnalysisControl1_Load;
             timer1 = new System.Windows.Forms.Timer(components);
+            helpProvider1 = new HelpProvider();
+            btnHelp = new Button();
             PaneltoolStrip.SuspendLayout();
             toolStrip1.SuspendLayout();
             SuspendLayout();
@@ -50,6 +54,7 @@
             // PaneltoolStrip
             // 
             PaneltoolStrip.BorderStyle = BorderStyle.FixedSingle;
+            PaneltoolStrip.Controls.Add(btnHelp);
             PaneltoolStrip.Controls.Add(toolStrip1);
             PaneltoolStrip.Dock = DockStyle.Top;
             PaneltoolStrip.Location = new Point(0, 0);
@@ -63,7 +68,7 @@
             toolStrip1.Items.AddRange(new ToolStripItem[] { btnOpenFile, btnPlay, btnPause, btnStop, tbxCurrentFile, lblFileInfo, toolStripSeparator1, lblTotalTime, toolStripLabelCurrentTime });
             toolStrip1.Location = new Point(8, 1);
             toolStrip1.Name = "toolStrip1";
-            toolStrip1.Size = new Size(541, 25);
+            toolStrip1.Size = new Size(510, 25);
             toolStrip1.TabIndex = 7;
             toolStrip1.Text = "toolStrip1";
             // 
@@ -134,13 +139,14 @@
             lblTotalTime.Name = "lblTotalTime";
             lblTotalTime.Size = new Size(66, 22);
             lblTotalTime.Text = "(total time)";
-            lblTotalTime.ToolTipText = "total time";
+            lblTotalTime.ToolTipText = "total play time";
             // 
             // toolStripLabelCurrentTime
             // 
             toolStripLabelCurrentTime.Name = "toolStripLabelCurrentTime";
             toolStripLabelCurrentTime.Size = new Size(85, 22);
             toolStripLabelCurrentTime.Text = "(Current Time)";
+            toolStripLabelCurrentTime.ToolTipText = "current played time";
             // 
             // panel1
             // 
@@ -161,6 +167,18 @@
             // 
             timer1.Tick += timer1_Tick;
             // 
+            // btnHelp
+            // 
+            btnHelp.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnHelp.FlatStyle = FlatStyle.Popup;
+            btnHelp.Image = (Image)resources.GetObject("btnHelp.Image");
+            btnHelp.Location = new Point(1127, 3);
+            btnHelp.Name = "btnHelp";
+            btnHelp.Size = new Size(24, 19);
+            btnHelp.TabIndex = 8;
+            btnHelp.UseVisualStyleBackColor = true;
+            btnHelp.Click += btnHelp_Click;
+            // 
             // SpectrumViewer
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -170,6 +188,7 @@
             Controls.Add(spectrumAnalysisControl1);
             Name = "SpectrumViewer";
             Text = "Spectrum Analyzer";
+            Load += SpectrumViewer_Load;
             PaneltoolStrip.ResumeLayout(false);
             PaneltoolStrip.PerformLayout();
             toolStrip1.ResumeLayout(false);
@@ -190,8 +209,10 @@
         private ToolStripSeparator toolStripSeparator1;
         private ToolStripLabel lblTotalTime;
         private Panel panel1;
-        private SpectrumAnalysisControl spectrumAnalysisControl1;
         private ToolStripLabel toolStripLabelCurrentTime;
         private System.Windows.Forms.Timer timer1;
+        internal SpectrumAnalysisControl spectrumAnalysisControl1;
+        private HelpProvider helpProvider1;
+        private Button btnHelp;
     }
 }

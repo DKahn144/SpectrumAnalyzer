@@ -1,19 +1,26 @@
 ﻿using FftSharp;
+using Microsoft.UI;
+using Microsoft.UI.Xaml.Shapes;
 using NAudio.Dsp;
 using NAudio.Wave;
 using ScottPlot;
 using ScottPlot.MultiplotLayouts;
 using ScottPlot.Plottables;
+using ScottPlot.WinForms;
 using SpectrumProcessor;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics.Eventing.Reader;
 using System.Drawing;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows.Forms;
+using Windows.Storage;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Button;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
@@ -24,16 +31,15 @@ namespace SpectrumAnalyzer
         public SpectrumAnalysisControl()
         {
             InitializeComponent();
-            if (firstInstance == null)
-                firstInstance = this;
-            else
-                tbxFFTWindowSize.Enabled = false;
-            //audioMultiStream = new AudioMultiStream();
-            FreqLevelBars = new BarPlot(new List<Bar>());
-            TimeLevelBars = new BarPlot(new List<Bar>());
             SetupSubgrids();
             LoadDummyData();
             SetupRectangleSelector();
+        }
+
+        internal void spectrumAnalysisControl1_Load(object sender, EventArgs e)
+        {
+            powersOf2.ForEach(p => cbxFFTWindow.Items.Add(p));
+            cbxFFTWindow.SelectedItem = fFTWindowSize;
         }
 
         private void SetupRectangleSelector()
@@ -42,18 +48,15 @@ namespace SpectrumAnalyzer
             spectrumPlots.MouseMove += OnMouseMove;
             spectrumPlots.MouseDown += OnMouseDown;
             spectrumPlots.MouseUp += OnMouseUp;
+            spectrumPlots.MouseClick += OnMouseClick;
+            spectrumPlots.MouseDoubleClick += OnMouseDoubleClick;
         }
 
-        public void SetAudioFileSource(SampleWaveStream sourceWaveStream, SpectrumData? sourceData = null)
+        public void SetAudioFileSource(SampleWaveStream? sourceWaveStream, SpectrumData data)
         {
-
             if (waveStream != null && waveStream != sourceWaveStream)
             {
-                if (data != null)
-                {
-                    data.Dispose();
-                    data = null;
-                }
+                this.data = null;
                 waveStream.Dispose();
             }
             if (sourceWaveStream != null)
@@ -65,15 +68,16 @@ namespace SpectrumAnalyzer
                 }
                 if (waveStream.WaveFormat != null)
                 {
-                    if (sourceData != null)
+                    if (data == null)
                     {
-                        data = sourceData;
+                        this.data = new SpectrumData(waveStream, SpectrumData.DefaultWindowSize, this.fileName);
                     }
                     else
                     {
-                        data = new SpectrumData(waveStream, fFTWindowSize, this.fileName);
-                        data.ReadSource();
+                        this.data = data;
                     }
+                    //cbxSelectionMethod.SelectedIndex = 0;
+                    this.data.ReadSource();
                     LoadPlotData();
                 }
             }
@@ -81,25 +85,16 @@ namespace SpectrumAnalyzer
 
         public void UpdateFilePosition()
         {
-            if (waveStream != null)
+            if (waveStream != null && Data != null)
             {
                 var time = waveStream.CurrentTime;
-                if (time.TotalMilliseconds == 0)
+                filePos.X = waveStream.Position / Data!.SampleSize;
+                filePos.IsVisible = true;
+                if (waveStream.Position > 0 && !FftPlot.PlottableList.Contains(filePos))
                 {
-                    FftPlot.PlottableList.Remove(filePos);
+                    FftPlot.PlottableList.Add(filePos);
                 }
-                else
-                {
-                    if (!FftPlot.PlottableList.Contains(filePos))
-                    {
-                        FftPlot.PlottableList.Add(filePos);
-                        filePos.Color = ScottPlot.Colors.Gray;
-                        filePos.LineWidth = 4;
-                        filePos.IsVisible = true;
-                    }
-                }
-                filePos.X = time.TotalSeconds / Data!.SecondsPerBuffer;
-                Refresh();
+                RefreshControl(spectrumPlots);
             }
             else
             {
@@ -112,11 +107,19 @@ namespace SpectrumAnalyzer
 
         public SampleWaveStream? WaveStream => waveStream;
 
+        public void EnableSaveWaveFile(bool enable)
+        {
+            btnSaveWaveFile.Enabled = enable;
+            btnSaveData.Visible = enable;
+            btnSaveData.Enabled = enable;
+        }
+
+        private const string NoItem = "None";
+
+
         private Plot FreqLevelPlot => spectrumPlots.Multiplot.GetPlot(0);
-        private Plot FftPlot => spectrumPlots.Multiplot.GetPlot(1);
         private Plot PowerPlot => spectrumPlots.Multiplot.GetPlot(2);
         private Plot ExtraPlot => spectrumPlots.Multiplot.GetPlot(3);
-
         private BarPlot FreqLevelBars;
         private BarPlot TimeLevelBars;
         private BarPlot timeLineBars = new BarPlot(new List<Bar>());
@@ -128,51 +131,39 @@ namespace SpectrumAnalyzer
         private double barWidth = 0.3D;
         private SampleWaveStream? waveStream;
         private VerticalLine filePos = new VerticalLine();
-
-        private List<int> powersOf2 = new List<int> { 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2014, 4096 };
-
+        private List<int> powersOf2 = new List<int> { 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096 };
         //[DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         private SpectrumData? data;
-
         private int desiredLatency = 200;
+        private int timeLineY = 0;
+        private int fFTWindowSize = 1024;
+        private ScottPlot.Plottables.Rectangle? RectanglePlot;
+        private ScottPlot.Plottables.Rectangle? TransformTimeLine;
+        private static SpectrumAnalysisControl? firstInstance;
+        private string fileName = "";
         Coordinates MouseDownCoordinates;
         Coordinates MouseNowCoordinates;
         CoordinateRect MouseSelectionRect => new(MouseDownCoordinates, MouseNowCoordinates);
-        CoordinateRect MouseSelectionRect1 => new(MouseDownCoordinates.X, MouseDownCoordinates.Y, MouseNowCoordinates.X + 1, MouseNowCoordinates.Y + 1);
-        private bool altMouseIsDown = false;
-        private bool altShiftMouseIsDown = false;
-        private int timeLineY = 0;
-        private ScottPlot.Plottables.Rectangle? RectanglePlot;
-        private ScottPlot.Plottables.Rectangle? TransformTimeLine;
 
-        private int bufferSize => data == null ? 0 : data.WaveFormat.ConvertLatencyToByteSize(desiredLatency);
-
-        private int totalTime => data == null ? 0 : data.WaveFormat.AverageBytesPerSecond * desiredLatency / 1000;
-
-        private int fFTWindowSize => int.Parse(tbxFFTWindowSize.Text);
-
-        private static SpectrumAnalysisControl? firstInstance;
-        private bool getSampleTime;
-        private string fileName = "";
-        private int reduceBy => 2;
-
-
-        public static int FFTWindowSize => firstInstance != null ? firstInstance.fFTWindowSize : 1024;
+        public int FFTWindowSize => fFTWindowSize;
 
         public string FileName => fileName;
 
-        public int TotalTime => totalTime;
+        public Plot FftPlot => spectrumPlots.Multiplot.GetPlot(1);
 
         private void SetupSubgrids()
         {
             spectrumPlots.Multiplot.AddPlots(4);
-            FreqLevelBars.Horizontal = true;
-            TimeLevelBars.Horizontal = false;
-
             // use a fixed layout to ensure all plots remain aligned
             PixelPadding padding = new(46, 10, 40, 10);
             foreach (Plot plot in spectrumPlots.Multiplot.GetPlots())
                 plot.Layout.Fixed(padding);
+
+            FreqLevelBars = new BarPlot(new List<Bar>());
+            FreqLevelBars.Horizontal = true;
+
+            TimeLevelBars = new BarPlot(new List<Bar>());
+            TimeLevelBars.Horizontal = false;
 
             MyCustomGrid customGrid = new();
             customGrid.Set(FreqLevelPlot, new MyGridCell(0, 0, 7, 8, 5, 1));
@@ -180,6 +171,15 @@ namespace SpectrumAnalyzer
             customGrid.Set(PowerPlot, new MyGridCell(5, 1, 7, 8, 1, 7));
             customGrid.Set(ExtraPlot, new MyGridCell(6, 0, 7, 8, 1, 8));
 
+            var leftAxis = ExtraPlot.Axes.Left;
+            var bottomAxis = ExtraPlot.Axes.Bottom;
+            bottomAxis.Label.Text = "Sample";
+            bottomAxis.Label.FontSize = 11;
+            bottomAxis.Range.Min = -25;
+            bottomAxis.Range.Max = 1050;
+            leftAxis.Label.Text = "Magnitude";
+            leftAxis.Label.FontSize = 11;
+            ExtraPlot.Axes.AutoScaleY();
 
             spectrumPlots.Multiplot.Layout = customGrid;
             spectrumPlots.Multiplot.SharedAxes.ShareX([FftPlot, PowerPlot]);
@@ -189,8 +189,12 @@ namespace SpectrumAnalyzer
             FreqLevelPlot.Axes.Left.MajorTickStyle.Length = 0;
             FreqLevelPlot.Axes.Left.MinorTickStyle.Length = 0;
             FreqLevelPlot.Layout.Fixed(new PixelPadding(10, 10, 40, 10));
-
-            spectrumPlots.Refresh();
+            DisableAnalyzeButton();
+            FftPlot.PlottableList.Add(filePos);
+            filePos.Color = ScottPlot.Colors.Gray;
+            filePos.LineWidth = 4;
+            filePos.IsVisible = false;
+            RefreshControl(spectrumPlots);
         }
 
         public void LoadDummyData()
@@ -225,38 +229,22 @@ namespace SpectrumAnalyzer
             {
                 spectrumPlots.Multiplot.GetPlot(i).Clear();
             }
-            if (data == null || data.Length == 0)
+            if (data == null || data.FftCount == 0)
             {
                 LoadDummyData();
                 return;
             }
 
-            data.ReadSource();
             // load the frequency levels
-            List<Bar> fBars = FreqLevelBars.Bars;
-            fBars.Clear();
-            int freqBarCount = data.FrequencyMags.Count() / reduceBy;
-            ValueMeasure[] freqVals = data.FrequencyMags.Take(freqBarCount).ToArray();
-            //if (!data.FftLoaded)
-            //{
-            //    freqVals = new ValueMeasure[freqBarCount / 4];
-            //    for (int i = 0; i < freqBarCount / 4; i++) freqVals[i] = data.FrequencyMags[i];
-            //}
-            LoadBarPlot(fBars, freqVals, ScottPlot.Orientation.Horizontal);
-            FreqLevelBars = FreqLevelPlot.Add.Bars(fBars);
+            LoadFrequencyData(Data!);
 
-            // load the timespan levels
-            List<Bar> tBars = TimeLevelBars.Bars;
-            LoadBarPlot(tBars, data.TimeMags, ScottPlot.Orientation.Vertical);
-            TimeLevelBars = PowerPlot.Add.Bars(tBars);
-
-            FreqLevelPlot.Axes.Margins(left: 0);
-            FftPlot.Axes.Margins(left: 0, right: 0);
-            PowerPlot.Axes.Margins(left: 0, right: 0);
+            LoadPowerPlot();
 
             //string HzTickLabelFormatter(double y) => $"{(2 * y * SpectrumData.HertzFactor):N0}";
-            string HzTickLabelFormatter(double y) => $"{(2 * y * Data!.HertzFactor):N0}";
-            string TimeTickLabelFormatter(double y) => $"{(y * Data!.SecondsPerBuffer):00}";
+            string HzTickLabelFormatter(double y) =>
+                $"{(y * Data!.HertzFactor):N0}";
+            string TimeTickLabelFormatter(double y) =>
+                $"{(y * Data!.SecondsPerBuffer):00}";
 
             ScottPlot.TickGenerators.NumericFixedInterval leftTickGen = new ScottPlot.TickGenerators.NumericFixedInterval(50.0F / Data!.HertzFactor);
 
@@ -269,6 +257,7 @@ namespace SpectrumAnalyzer
             leftTickGen.LabelFormatter = HzTickLabelFormatter;
             // tell the left axis to use our custom tick generator
             FftPlot.Axes.Left.TickGenerator = leftTickGen;
+            FftPlot.Axes.Margins(left: 0, right: 0);
 
             //bottomTickGen.IntegerTicksOnly = false;
             bottomTickGen.LabelFormatter = TimeTickLabelFormatter;
@@ -278,21 +267,28 @@ namespace SpectrumAnalyzer
 
             FftPlot.Axes.Left.Label.Text = "Hz";
             FftPlot.Axes.Left.Label.FontSize = 11;
-            PowerPlot.Axes.Bottom.Label.Text = "FFT Windows";
-            PowerPlot.Axes.Bottom.Label.FontSize = 11;
-            HeatmapData = new double[data.FftColumns.GetLength(1)/ reduceBy, data.FftColumns.GetLength(0)];
+            int colHeight = data.FftWindowHeight;
+            int colCount = data.Records.Records.Length;
+            HeatmapData = new double[colHeight, colCount];
             double maxMag = 0;
-            for (int x = 0; x < data.FftColumns.GetLength(0); x++)
+            for (int x = 0; x < colCount; x++)
             {
-                for (int y = 0; y < data.FftColumns.GetLength(1)/ reduceBy; y++)
+                for (int y = 0; y < colHeight; y++)
                 {
-                    double mag = data.FftColumns[x, y].Magnitude;
+                    double mag = data.Records.Records[x].FftColumn[y].Magnitude;
                     if (mag > 2.0D && y > 450)
                     {
 
                     }
-                    HeatmapData[(data.FftColumns.GetLength(1)/ reduceBy) - 1 - y, x] = mag;
-                    if (mag > maxMag) maxMag = mag;
+                    try
+                    {
+                        HeatmapData[colHeight - 1 - y, x] = mag;
+                        if (mag > maxMag) maxMag = mag;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw;
+                    }
                 }
             }
 
@@ -307,11 +303,68 @@ namespace SpectrumAnalyzer
 
             ExtraPlot.Clear();
 
-            spectrumPlots.Refresh();
+            RefreshControl(spectrumPlots);
         }
 
-        private void LoadBarPlot(List<Bar> bars, ValueMeasure[] values, ScottPlot.Orientation orientation)
+        private void LoadFrequencyData(SpectrumData data, int itemId = -1)
         {
+            List<Bar> fBars = FreqLevelBars.Bars;
+            fBars.Clear();
+            ValueMeasure[] freqVals = data.FrequencyMags.ToArray();
+            if (itemId >= 0)
+            {
+                freqVals = data.Records.Records[itemId].Magnitude.GetValueMeasuresFromValues();
+            }
+            LoadBarPlotData(fBars, freqVals, ScottPlot.Orientation.Horizontal);
+            FreqLevelBars = FreqLevelPlot.Add.Bars(fBars);
+            FreqLevelPlot.Axes.Margins(left: 0);
+
+            // Determine average weighted frequency nds display it
+            float avgFrequency = 0;
+            float avgVolume = 0;
+            (avgFrequency, avgVolume) = data.GetWeightedAvgFreq(itemId);
+            tbxAvgFreq.Text = Math.Round(avgFrequency, 1).ToString("0.0");
+            tbxAvgVol.Text = Math.Round(avgVolume, 1).ToString("0.0");
+        }
+
+
+        /// <summary>
+        /// load the timespan levels
+        /// </summary>
+        public void LoadPowerPlot()
+        {
+            LoadPowerBars(TimeLevelBars.Bars, data!.TimeMags, "FFT Windows", 0, 11);
+            TimeLevelBars = PowerPlot.Add.Bars(TimeLevelBars.Bars);
+        }
+
+        public List<Bar> LoadPowerBars(List<Bar> bars, ValueMeasure[] values, string label, int startX, int fontSize)
+        {
+            PowerPlot.Axes.Bottom.Label.Text = label;
+            PowerPlot.Axes.Bottom.Label.FontSize = fontSize;
+            PowerPlot.PlottableList.Clear();
+            List<CoordinateLine> sLines = new List<CoordinateLine>();
+            LoadBarPlotData(bars, values, ScottPlot.Orientation.Vertical, startX, sLines);
+            for (int i = 0; i < sLines.Count; i++)
+            {
+                PowerPlot.Add.Line(sLines[i]);
+            }
+            foreach (var line in PowerPlot.GetPlottables<LinePlot>())
+            {
+                line.Color = ScottPlot.Colors.Red;
+                line.LineWidth = 2;
+            }
+            PowerPlot.Add.Bars(bars);
+            PowerPlot.Axes.Margins(left: 0, right: 0);
+            PowerPlot.Axes.AutoScaleY();
+            RefreshControl(spectrumPlots);
+            return bars;
+        }
+
+        private void LoadBarPlotData(List<Bar> bars, ValueMeasure[] values,
+            ScottPlot.Orientation orientation, int startPos = 0, List<CoordinateLine>? avgLines = null)
+        {
+            float[] smoothValues = new float[values.Length];
+            int box = 5;
             bars.Clear();
             for (int i = 0; i < values.Length; i++)
             {
@@ -319,357 +372,136 @@ namespace SpectrumAnalyzer
                 {
                     var bar = new Bar()
                     {
-                        Position = i,
+                        Position = i + startPos,
                         Size = barWidth,
                         Value = values[i].AvgValue,
                         Error = values[i].RMSValue,
                         Orientation = orientation
                     };
                     bars.Add(bar);
+
                 }
             }
-        }
-
-        public void SetFFTData(List<double[]> data, int totalLength = 0, int height = 0)
-        {
-            if (data.Count > totalLength)
-                totalLength = data.Count;
-            if (data.Count > 0 && data[0].Length > height)
+            if (avgLines != null)
             {
-                height = data[0].Length;
-                dataHeight = height;
-                dataWidth = totalLength;
-                HeatmapData = new double[totalLength, height];
-                for (int x = 0; x < data.Count; x++)
+                avgLines.Clear();
+                for (int i = 0; i < values.Length - 1; i++)
                 {
-                    for (int y = 0; y < data[0].Length; y++)
+                    float startX, startY, endX, endY;
+                    if (orientation == ScottPlot.Orientation.Vertical)
                     {
-                        HeatmapData[y, x] = data[x][y];
+                        startX = i + startPos;
+                        startY = values[i].SmoothValue;
+                        endX = i + 1 + startPos;
+                        endY = values[i + 1].SmoothValue;
                     }
+                    else
+                    {
+                        startY = i + startPos;
+                        startX = values[i].SmoothValue;
+                        endY = i + 1 + startPos;
+                        endX = values[i + 1].SmoothValue;
+                    }
+                    avgLines.Add(new CoordinateLine(startX, startY, endX, endY));
                 }
-                loadedSamples = data[0].Length;
             }
-            spectrumPlots.Refresh();
         }
 
+        public bool EventInHeatmap(Coordinates coords)
+        {
+            return coords.X >= -1 &&
+                coords.X < Data?.FftCount + 2 &&
+                coords.Y >= -2 &&
+                coords.Y <= Data?.FftWindowHeight + 2;
+        }
 
         private void OnMouseDown(object? sender, MouseEventArgs e)
         {
             MouseDownCoordinates = FftPlot.GetCoordinates(e.X, e.Y);
-            if (Data != null &&
-                spectrumPlots.UserInputProcessor.KeyState.IsPressed(ScottPlot.Interactivity.StandardKeys.Alt))
+            DisplayCoords(MouseDownCoordinates);
+            if (EventInHeatmap(MouseDownCoordinates))
             {
-                altShiftMouseIsDown = spectrumPlots.UserInputProcessor.KeyState.IsPressed(ScottPlot.Interactivity.StandardKeys.Shift);
-                altMouseIsDown = !altShiftMouseIsDown;
-                if (altMouseIsDown)
+                if (SelectionMgr.IsActive)
                 {
-                    ClearTransformLine();
-                    MouseNowCoordinates = FftPlot.GetCoordinates(e.X, e.Y);
-                    AddRectangle();
+                    spectrumPlots.UserInputProcessor.Disable(); // disable the default click-drag-pan behavior
+                    SelectionMgr.HandleMouseDown(MouseDownCoordinates, e);
                 }
-                if (altShiftMouseIsDown)
+                else
                 {
-                    ClearRectangle();
-                    MouseNowCoordinates = FftPlot.GetCoordinates(e.X, e.Y + 1);
-                    timeLineY = e.Y;
-                    AddTransformLine();
-                }
-                spectrumPlots.UserInputProcessor.Disable(); // disable the default click-drag-pan behavior
-            }
-            else
-            {
-                spectrumPlots.UserInputProcessor.Enable(); // disable the default click-drag-pan behavior
-                if (getSampleTime)
-                {
-                    DisplaySampleTime();
-                    getSampleTime = false;
-                }
-                if (filePos.X > 0)
-                {
-                    if (waveStream != null && MouseDownCoordinates.X != filePos.X)
+                    spectrumPlots.UserInputProcessor.Enable(); // disable the default click-drag-pan behavior
+                    int x = (int)MouseDownCoordinates.X;
+                    if (cbxShowSignal.Checked)
                     {
-                        // MouseDownCoordinates.X = waveStream.CurrentTime.TotalSeconds / Data.SecondsPerBuffer (buffers so far)
-                        // ((AudioFileReader)waveStream).Seek((long)MouseDownCoordinates.X, SeekOrigin.Current);
-
-                        waveStream.Position = (long)((MouseDownCoordinates.X * waveStream.Length) / (waveStream.TotalTime.TotalSeconds / Data!.SecondsPerBuffer));
-
-                        filePos.X = MouseDownCoordinates.X;
-                        var time = waveStream.CurrentTime;
+                        filePos.IsVisible = true;
+                        if (!FftPlot.PlottableList.Contains(filePos))
+                        {
+                            FftPlot.PlottableList.Add(filePos);
+                        }
+                        filePos.X = x;
+                        DisplaySampleTime();
+                        LoadFrequencyData(Data!, x);
+                    }
+                    if (filePos.IsVisible)
+                    {
+                        if (waveStream != null && x >= 0)
+                        {
+                            filePos.IsVisible = true;
+                            filePos.X = x;
+                            waveStream.Position = (long)(x * Data!.SampleSize);
+                            //waveStream.Position = (long)((x * waveStream.Length) / (waveStream.CurrentTime.TotalSeconds / Data!.SecondsPerBuffer));
+                        }
                     }
                 }
             }
-            spectrumPlots.Refresh();
+            RefreshControl(spectrumPlots);
         }
 
         private void OnMouseMove(object? sender, MouseEventArgs e)
         {
             MouseNowCoordinates = FftPlot.GetCoordinates(e.X, e.Y);
+            DisplayCoords(MouseNowCoordinates);
+            if (SelectionMgr.IsActive && EventInHeatmap(MouseNowCoordinates))
+            {
+                SelectionMgr.HandleMouseMove(MouseNowCoordinates, e);
+            }
+            RefreshControl(spectrumPlots);
             if (Data != null)
             {
-                tbxMouseTime.Text = (MouseNowCoordinates.X * Data!.SecondsPerBuffer).ToString("0.0");
-                tbxMouseHz.Text = (MouseNowCoordinates.Y * Data!.HertzFactor * 2).ToString("0.0");
-                if (altMouseIsDown)
-                {
-                    RectanglePlot?.CoordinateRect = MouseSelectionRect;
-                    SetSelectionText();
-                    spectrumPlots.Refresh();
-                }
-                else if (altShiftMouseIsDown)
-                {
-                    MouseNowCoordinates = FftPlot.GetCoordinates(e.X, timeLineY);
-                    var top = TransformTimeLine?.CoordinateRect.Top;
-                    TransformTimeLine?.CoordinateRect = MouseSelectionRect;
-                    SetSelectionText();
-                    spectrumPlots.Refresh();
-                }
+                var mouseTime = MouseNowCoordinates.X * Data!.SecondsPerBuffer;
+                int minutes = (int)(mouseTime / 60);
+                var seconds = mouseTime - (minutes * 60);
+                tbxMouseTime.Text = MouseNowCoordinates.X >= 0 ? $"{minutes}:{seconds:N2}" : "";
+                tbxMouseHz.Text = MouseNowCoordinates.Y >= 0 ? (MouseNowCoordinates.Y * Data!.HertzFactor).ToString("0.0") : "";
             }
         }
 
         private void OnMouseUp(object? sender, MouseEventArgs e)
         {
-            if (altMouseIsDown)
+            MouseNowCoordinates = FftPlot.GetCoordinates(e.X, e.Y);
+            if (SelectionMgr.IsActive)
             {
-                spectrumPlots.UserInputProcessor.Enable(); // re-enable the default click-drag-pan behavior
-                RectanglePlot?.LinePattern = LinePattern.Solid;
-                altMouseIsDown = false;
+                SelectionMgr.HandleMouseUp(MouseNowCoordinates, e);
+                RefreshControl(spectrumPlots);
             }
-            else if (altShiftMouseIsDown)
-            {
-                spectrumPlots.UserInputProcessor.Enable(); // re-enable the default click-drag-pan behavior
-                TransformTimeLine?.LinePattern = LinePattern.Solid;
-                altShiftMouseIsDown = false;
-            }
-            spectrumPlots.Refresh();
+            spectrumPlots.UserInputProcessor.Enable(); // disable the default click-drag-pan behavior
         }
 
-        private void AddRectangle()
+        private void OnMouseClick(object? sender, MouseEventArgs e)
         {
-            ClearRectangle();
-            RectanglePlot = FftPlot.Add.Rectangle(0, 0, 0, 0);
-            RectanglePlot.IsVisible = true;
-            RectanglePlot.FillStyle.Color = Colors.Red.WithAlpha(.1);
-            RectanglePlot.LinePattern = LinePattern.Dashed;
-            RectanglePlot.LineColor = Colors.Red;
-            RectanglePlot.LineWidth = 2;
-            RectanglePlot.CoordinateRect = MouseSelectionRect;
-            EnableAnalyzeBtn(System.Drawing.Color.DarkRed);
-            SetSelectionText();
-            spectrumPlots.UserInputProcessor.Disable(); // disable the default click-drag-pan behavior
-        }
-
-        private void ClearRectangle()
-        {
-            if (RectanglePlot != null)
+            if (e.Button == MouseButtons.Right)
             {
-                FftPlot.PlottableList.Remove(RectanglePlot);
-                RectanglePlot.IsVisible = false;
-                RectanglePlot = null;
+                MouseNowCoordinates = FftPlot.GetCoordinates(e.X, e.Y);
             }
         }
 
-        private void AddTransformLine()
+        private void OnMouseDoubleClick(object? sender, MouseEventArgs e)
         {
-            ClearTransformLine();
-            TransformTimeLine = FftPlot.Add.Rectangle(0, 0, 0, 0);
-            TransformTimeLine.FillStyle.Color = Colors.Cyan.WithAlpha(.1);
-            TransformTimeLine.LinePattern = LinePattern.Dashed;
-            TransformTimeLine.LineColor = Colors.Cyan;
-            TransformTimeLine.LineWidth = 1;
-            TransformTimeLine.CoordinateRect = MouseSelectionRect;
-            TransformTimeLine.IsVisible = true;
-            EnableAnalyzeBtn(System.Drawing.Color.DarkCyan);
-            spectrumPlots.UserInputProcessor.Disable(); // disable the default click-drag-pan behavior
-            SetSelectionText();
         }
 
-        private void ClearTransformLine()
+        private void DisplayCoords(Coordinates mouseCoordinates)
         {
-            if (TransformTimeLine != null)
-            {
-                TransformTimeLine.IsVisible = false;
-                TransformTimeLine = null;
-                altShiftMouseIsDown = false;
-                UndoTimeLineBars();
-            }
-        }
-
-        private void SetSelectionText()
-        {
-            tbxSelection.Text = $"({Math.Round(MouseSelectionRect.Left, 1):N1}, {Math.Round(MouseSelectionRect.Bottom, 1):N1}), ({Math.Round(MouseSelectionRect.Right, 1):N1}, {Math.Round(MouseSelectionRect.Top, 1):N1})";
-        }
-
-        private void EnableAnalyzeBtn(System.Drawing.Color forecolor)
-        {
-            lblSelection.Visible = true;
-            tbxSelection.Visible = true;
-            lblSelection.ForeColor = forecolor;
-            tbxSelection.ForeColor = forecolor;
-            btnAnalyze.ForeColor = forecolor;
-            btnClearAnalysis.ForeColor = forecolor;
-            btnAnalyze.Visible = true;
-            btnClearAnalysis.Visible = true;
-        }
-
-        private void btnAnalyze_Click(object sender, EventArgs e)
-        {
-            if (data == null)
-                return;
-            if (RectanglePlot != null)
-            {
-                SampleWaveStream? rectStream = null;
-                int newSampleRate = data.WaveFormat.SampleRate;
-                byte[]? sampleBuffer = null;
-                int leftWindow = (int)Math.Round(RectanglePlot.CoordinateRect.Left);
-                if (leftWindow < 0) leftWindow = 0;
-                int rightWindow = (int)Math.Round(RectanglePlot.CoordinateRect.Right);
-                if (leftWindow == rightWindow) rightWindow++;
-                int window = rightWindow - leftWindow;
-                int bottom = (int)Math.Round(RectanglePlot.CoordinateRect.Bottom);
-                if (bottom < 0) bottom = 0;
-                int top = (int)Math.Round(RectanglePlot.CoordinateRect.Top);
-                if (bottom == top) top++;
-                if (bottom == 0 && top >= data.FftColumns.GetLength(1) / reduceBy)
-                {
-                    top = -1;
-                    // pass a slice of the original sample data to the child window, full height since all frequencies are selected
-                    var sampleByteBuffer = data.RawBufferSegment(leftWindow, rightWindow).SelectMany(b => b.ToList());
-                    sampleBuffer = sampleByteBuffer.ToArray();
-                }
-                else
-                {
-                    int height = data.FftWindowSize / reduceBy;
-                    var fft = new FFTData();
-                    fft.SetFftColumns(data.FftColumns, leftWindow, rightWindow, bottom, top);
-                    sampleBuffer = data.GetReverseFFT(fft.FftColumns);
-                    /*
-                    float[] selectedSamples = new float[height];
-                    sampleBuffer = new byte[window * sizeof(float)];
-                    for (int i = leftWindow; i < rightWindow; i++)
-                    {
-                        System.Numerics.Complex sum = 0;
-                        for (int j = 0; j < height; j++)
-                        {
-                            if (j < bottom || j >= top)
-                                selectedColumns[i - leftWindow, j] = 0;
-                            else
-                            {
-                                var value =  data.FftColumns[i, j];
-                                selectedColumns[i - leftWindow, j] = value;
-                                sum += value;
-                            }
-                        }
-                        selectedSamples[i - leftWindow] = (float) (sum.Real * height) / (top - bottom);
-
-                        byte[] byte4 = BitConverter.GetBytes(selectedSamples[i - leftWindow]);
-                        for (int k = 0; k < 4; k++)
-                            sampleBuffer[((i - leftWindow) * sizeof(float)) + k] = byte4[k];
-                    }
-                    */
-                }
-
-                WaveFormat newWaveFormat = new WaveFormat(newSampleRate, data.WaveFormat.BitsPerSample, data.WaveFormat.Channels);
-
-                rectStream = new(sampleBuffer, 0, sampleBuffer.Length, newWaveFormat);
-                rectStream.FFTData.SetFftColumns(data.FftColumns, leftWindow, rightWindow, bottom, top);
-
-
-
-                var spectrumDetail = new SpectrumDetailViewer();
-                var detailAnalysis = spectrumDetail.SpectrumAnalysisControl;
-                detailAnalysis.SetAudioDataSource(rectStream);
-
-                spectrumDetail.Left = this.Left + 20;
-                spectrumDetail.Top = this.Top + 20;
-                spectrumDetail.Height = this.Height;
-                spectrumDetail.Width = this.Width;
-                spectrumDetail.Text = $"Detailed Analysis ({leftWindow:N2} sec to {rightWindow:N2} sec, {bottom} hz to {top} hz)";
-                spectrumDetail.Show();
-            }
-            else if (TransformTimeLine != null)
-            {
-                int leftWindow = (int)Math.Round(TransformTimeLine.CoordinateRect.Left);
-                if (leftWindow < 0) leftWindow = 0;
-                int rightWindow = (int)Math.Round(TransformTimeLine.CoordinateRect.Right);
-                if (leftWindow == rightWindow) rightWindow++;
-                int bottom = (int)Math.Round(TransformTimeLine.CoordinateRect.Bottom);
-                if (bottom < 0) bottom = 0;
-
-                var fftSlice = new System.Numerics.Complex[rightWindow - leftWindow];
-                for (int i = leftWindow; i < rightWindow; i++) fftSlice[i - leftWindow] = data.FftColumns[i, bottom];
-
-                int window = rightWindow - leftWindow;
-                int testVal = GetLargest2Factor(window);
-                var fftSlice2 = new System.Numerics.Complex[testVal];
-                for (int i = 0; i < testVal; i++) fftSlice2[i] = fftSlice[i];
-
-                // perform an FFT on the selected slice
-                fftSlice2 = Data!.PerformFFTInPlace(fftSlice2);
-                ValueMeasure[] fftValue = new ValueMeasure[data.FftColumns.Length];
-                for (int i = 0; i < data.FftColumns.Length; i++)
-                {
-                    fftValue[i] = new ValueMeasure();
-                    if (i >= leftWindow && i < (leftWindow + fftSlice2.Length/2))
-                    {
-                        fftValue[i].AddValue(0, (float)fftSlice2[i - leftWindow].Magnitude);
-                    }
-                }
-                List<Bar> bars = new List<Bar>();
-                LoadBarPlot(bars, fftValue, ScottPlot.Orientation.Vertical);
-                PowerPlot.PlottableList.Clear();
-                timeLineBars = PowerPlot.Add.Bars(bars);
-                PowerPlot.Axes.Bottom.Label.Text = $"FFT for {bottom * data.HertzFactor * 2} Hz selected, {testVal} samples.";
-                PowerPlot.Axes.Bottom.Label.FontSize = 10;
-                spectrumPlots.Refresh();
-            }
-        }
-
-        private void btnClearAnalysis_Click(object sender, EventArgs e)
-        {
-            ClearRectangle();
-            ClearTransformLine();
-            lblSelection.Visible = false;
-            tbxSelection.Visible = false;
-            btnAnalyze.Visible = false;
-            btnClearAnalysis.Visible = false;
-            PowerPlot.Axes.Bottom.Label.Text = "FFT Windows";
-            PowerPlot.Axes.Bottom.Label.FontSize = 11;
-            spectrumPlots.Refresh();
-        }
-
-        private void UndoTimeLineBars()
-        {
-            if (timeLineBars.Bars.Count > 0)
-            {
-                PowerPlot.PlottableList.Remove(timeLineBars);
-                TimeLevelBars = PowerPlot.Add.Bars(TimeLevelBars.Bars);
-                timeLineBars.Bars.Clear();
-                spectrumPlots.Refresh();
-            }
-        }
-
-        private void SetAudioDataSource(SampleWaveStream waveStream)
-        {
-            data = new SpectrumData(waveStream, fFTWindowSize);
-            SetAudioFileSource(waveStream, data);
-        }
-
-        private void SetAudioDataSource(AudioFileSampleWaveStream source)
-        {
-            data = new SpectrumData(source, fFTWindowSize, source.FileName);
-            SetAudioFileSource(source, data);
-        }
-
-        private void tbxFFTWindowSize_TextChanged(object sender, EventArgs e)
-        {
-            var digitstr = RemoveNonDigits(tbxFFTWindowSize.Text);
-            if (digitstr != tbxFFTWindowSize.Text)
-                tbxFFTWindowSize.Text = digitstr;
-        }
-
-        private void TbxFFTWindowSize_LostFocus(object sender, EventArgs e)
-        {
-            var windowSize = GetLargest2Factor(tbxFFTWindowSize.Text);
-            tbxFFTWindowSize.Text = windowSize.ToString();
+            tbxMouseX.Text = $"{mouseCoordinates.X:N2}";
+            tbxMouseY.Text = $"{mouseCoordinates.Y:N2}";
         }
 
         private int GetLargest2Factor(string text)
@@ -678,17 +510,6 @@ namespace SpectrumAnalyzer
             if (val.Length == 0)
                 return 0;
             return GetLargest2Factor(int.Parse(val));
-        }
-
-        private string RemoveNonDigits(string text)
-        {
-            var sb = new StringBuilder();
-            for (int t = 0; t < text.Length; t++)
-            {
-                if (char.IsDigit(text[t]))
-                    sb.Append(text[t]);
-            }
-            return sb.ToString();
         }
 
         private int GetLargest2Factor(int window)
@@ -702,29 +523,277 @@ namespace SpectrumAnalyzer
             return testVal;
         }
 
-        private void btnShowSignal_Click(object sender, EventArgs e)
+        private string RemoveNonDigits(string text)
         {
-            getSampleTime = true;
+            var sb = new StringBuilder();
+            for (int t = 0; t < text.Length; t++)
+            {
+                if (char.IsDigit(text[t]))
+                    sb.Append(text[t]);
+            }
+            return sb.ToString();
         }
 
         private void DisplaySampleTime()
         {
             double columnPos = MouseNowCoordinates.X;
-            if (data != null)
+            if (data != null && data.Records.Length >= (int)columnPos)
             {
+                var record = data.Records.Records[(int)columnPos];
                 var samplePos = (int)(columnPos * FFTWindowSize);
-                int samplesPerBuffer = data.WaveFormat.ConvertLatencyToByteSize(FFTWindowSize) / data.WaveFormat.BlockAlign;
-                float[] samples = new Span<float>(data.SampleValues, samplePos, FFTWindowSize).ToArray();
+                float[] samples = record.Samples;
                 ExtraPlot.Clear();
                 ExtraPlot.Add.Signal(samples);
+                ExtraPlot.Axes.AutoScaleY();
             }
         }
 
         private void cbxSmooth_CheckedChanged(object sender, EventArgs e)
         {
             HMap.Smooth = cbxSmooth.Checked;
-            spectrumPlots.Refresh();
+            RefreshControl(spectrumPlots);
+        }
+
+        private void btnSaveData_Click(object sender, EventArgs e)
+        {
+            if (Data != null && Data.Records != null)
+            {
+                var saveFileDialog = new SaveFileDialog();
+                string allExtensions = "Wave Data files | *.wavd";
+                saveFileDialog.Filter = allExtensions;
+                saveFileDialog.FilterIndex = 1;
+                saveFileDialog.FileName = System.IO.Path.GetFileNameWithoutExtension(FileName);
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        FftRecords newRecords = Data.Records;
+                        JsonSerializerOptions options = new JsonSerializerOptions { };
+                        options.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
+                        string json = JsonSerializer.Serialize<FftRecords>(newRecords, options);
+                        File.WriteAllText(saveFileDialog.FileName, json);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(String.Format("{0}", ex.Message), "Error Saving File");
+                        return;
+                    }
+                }
+            }
+        }
+
+
+
+        #region Selecting areas on the heatmap
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public SelectionManager SelectionMgr { get; set; }
+
+        private void cbxSelectionMethod_VisibleChanged(object sender, EventArgs e)
+        {
+            if (cbxSelectionMethod.Items.Count == 0 && SelectionMgr != null)
+            {
+                cbxSelectionMethod.Items.Add("None");
+                foreach (string name in SelectionMgr.SelectionMethods.Select(mbox => mbox.Name))
+                {
+                    cbxSelectionMethod.Items.Add(name);
+                }
+                cbxSelectionMethod.SelectedIndex = 0;
+                RefreshControl(cbxSelectionMethod);
+            }
+        }
+
+        private void cbxSelectionMethod_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cbxSelectionMethod.SelectedItem != null && cbxSelectionMethod.Text != NoItem)
+            {
+                SelectionMgr.UseSelectionMethod(cbxSelectionMethod.SelectedItem.ToString()!);
+                EnableAnalyzeBtn();
+            }
+            else
+            {
+                SelectionMgr.UseSelectionMethod("");
+                DisableAnalyzeButton();
+            }
+
+            SetSelectionText();
+            RefreshControl(this);
+        }
+
+        /// <summary>
+        /// Event called when the selection manager's status changes.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        internal void OnSelectionMethodChanged(object? sender, EventArgs e)
+        {
+            if (!SelectionMgr.IsActive)
+            {
+                DeactivateSelectorControls();
+            }
+            else if (SelectionMgr.ActiveSelectionMethod != null)
+            {
+                SetSelectorControlColors(SelectionMgr.ActiveSelectionMethod.Forecolor);
+            }
+            else
+            {
+                SetSelectorControlColors(System.Drawing.Color.DarkGray);
+            }
+            SetSelectionText();
+            RefreshControl(this);
+        }
+
+        private void DeactivateSelectorControls()
+        {
+            SetSelectorControlColors(System.Drawing.Color.DarkGray);
+            btnAnalyze.Enabled = false;
+            btnClearAnalysis.Enabled = false;
+            lbxSelection.Items.Clear();
+        }
+
+        private void SetSelectorControlColors(System.Drawing.Color actionColor)
+        {
+            cbxSelectionMethod.ForeColor = actionColor;
+            //lblSelectionMethod.ForeColor = actionColor;
+            lbxSelection.ForeColor = actionColor;
+            //lblSelection.ForeColor = actionColor;
+            btnAnalyze.ForeColor = actionColor;
+            btnClearAnalysis.ForeColor = actionColor;
+        }
+
+        private void EnableAnalyzeBtn()
+        {
+            var fontStyle = System.Drawing.FontStyle.Bold;
+            var color = SelectionMgr == null ? 
+                System.Drawing.Color.DarkGray : SelectionMgr.ActiveColor;
+            lblSelection.Visible = true;
+            lbxSelection.Visible = true;
+            lbxSelection.ForeColor = color;
+            cbxSelectionMethod.Font = new Font(btnAnalyze.Font, fontStyle);
+            lbxSelection.Font = new Font(btnAnalyze.Font, fontStyle);
+            btnAnalyze.ForeColor = color;
+            btnClearAnalysis.ForeColor = color;
+            btnAnalyze.Enabled = true;
+            btnAnalyze.Font = new Font(btnAnalyze.Font, fontStyle);
+            btnClearAnalysis.Enabled = true;
+            btnClearAnalysis.Font = new Font(btnClearAnalysis.Font, fontStyle);
+        }
+
+        private void SetSelectionText()
+        {
+            string[] textItems = SelectionMgr.GetSelectionText();
+            string selections = String.Join(',', textItems);
+            IEnumerable<string> listItems = lbxSelection.Items.Cast<string>();
+            string listText = String.Join(',', listItems);
+            if (String.Compare(selections, listText) == 0)
+                return;
+
+            lbxSelection.BeginUpdate();
+            try
+            {
+                lbxSelection.Items.Clear();
+                foreach (var item in textItems)
+                    lbxSelection.Items.Add(item);
+            }
+            finally
+            {
+                lbxSelection.EndUpdate();
+            }
+        }
+
+        private void DisableAnalyzeButton()
+        {
+            EnableAnalyzeBtn();
+            btnAnalyze.Enabled = false;
+            btnClearAnalysis.Enabled = false;
+        }
+
+        private void btnAnalyze_Click(object sender, EventArgs e)
+        {
+            if (data == null)
+                return;
+
+            SelectionMgr.ApplySelection();
+        }
+
+        private void btnClearAnalysis_Click(object sender, EventArgs e)
+        {
+            SetSelectionText();
+            cbxSelectionMethod.SelectedIndex = 0;
+            btnAnalyze.Enabled = false;
+            btnClearAnalysis.Enabled = false;
+            LoadPowerPlot();
+            RefreshControl(spectrumPlots);
+        }
+
+        private void RefreshControl(Control ctrl)
+        {
+            SpectrumViewer.RunInUIContext(() => ctrl.Refresh());
+        }
+
+        #endregion
+
+        private void cbxShowSignal_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!cbxShowSignal.Checked && Data != null)
+            {
+                LoadFrequencyData(Data!);
+                ExtraPlot.PlottableList.Clear();
+                RefreshControl(spectrumPlots);
+            }
+        }
+
+        private void btnSaveWaveFile_Click(object sender, EventArgs e)
+        {
+            if (Data != null && Data.Records != null)
+            {
+                var saveFileDialog = new SaveFileDialog();
+                string allExtensions = "Wave files | *.wav";
+                saveFileDialog.Filter = allExtensions;
+                saveFileDialog.FilterIndex = 1;
+                saveFileDialog.FileName = System.IO.Path.GetFileNameWithoutExtension(FileName);
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        WaveFileWriter.CreateWaveFile(saveFileDialog.FileName, this.WaveStream);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(String.Format("{0}", ex.Message), "Error Saving Wave File");
+                        return;
+                    }
+                }
+            }
+        }
+
+        private void cbxFFTWindow_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cbxFFTWindow.SelectedItem != null)
+            {
+                int lastWindowSize = fFTWindowSize;
+                int windowSize = int.Parse(cbxFFTWindow.SelectedItem.ToString()!);
+                fFTWindowSize = windowSize;
+                if (Data != null && Data.FftWindowSize != windowSize)
+                {
+                    try
+                    {
+                        this.Cursor = Cursors.WaitCursor;
+                        var newData = new SpectrumData(this.WaveStream, fFTWindowSize, this.FileName);
+                        SetAudioFileSource(this.WaveStream, newData);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(String.Format("{0}", ex.Message), "Error Changing FFT Window Size");
+                        cbxFFTWindow.SelectedItem = lastWindowSize;
+                    }
+                    finally
+                    {
+                        this.Cursor = Cursors.Default;
+                    }
+                }
+            }
         }
     }
-
 }
